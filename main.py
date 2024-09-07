@@ -76,7 +76,7 @@ async def get_info(client, message):
 
     result = await get_tmdb_info(tmdb_url)
     poster_url = result['poster_url']
-    caption = f'{result['message'][:4000]}...'
+    caption = f"{result['message'][:4000]}..."
     await app.send_photo(CAPTION_CHANNEL_ID, photo=poster_url, caption=caption, parse_mode=enums.ParseMode.HTML)
     await auto_delete_message(message, rply)
     await tmdb_msg.delete()
