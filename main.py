@@ -108,8 +108,9 @@ async def get_command(client, message):
 @app.on_message(filters.private & filters.command("get"))
 async def handle_get_command(client, message):
     user_id = message.from_user.id
-
-  
+    
+    if not await check_access(message, user_id):
+         return
     
     file_id = message.command[1] if len(message.command) > 1 else None
 
