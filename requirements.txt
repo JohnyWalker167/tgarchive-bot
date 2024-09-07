@@ -1,0 +1,10 @@
+python-dotenv
+pyrofork
+pyromod==1.5
+TgCrypto
+pymongo
+flask
+gunicorn
+wget
+requests
+aiohttp
