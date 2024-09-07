@@ -196,7 +196,7 @@ async def total_users_command(client, message):
 @app.on_message(filters.private & filters.command("help"))
 async def handle_help_command(client, message):
     try:
-        file_id = 1001
+        file_id = 60
         get_msg = await app.get_messages(DB_CHANNEL_ID, int(file_id))
         send_msg = await get_msg.copy(chat_id=message.chat.id)
         await message.delete()
