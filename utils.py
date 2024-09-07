@@ -58,6 +58,19 @@ def humanbytes(size):
     f = ('%.2f' % size).rstrip('0').rstrip('.')
     return f"{f} {suffixes[i]}"
 
+async def extract_movie_info(caption):
+    try:
+        regex = re.compile(r'(.+?)(\d{4})')
+        match = regex.search(caption)
+
+        if match:
+             movie_name = match.group(1).replace('.', ' ').strip()
+             release_year = match.group(2)
+             return movie_name, release_year
+    except Exception as e:
+        print(e)
+    return None, None
+
 async def get_movie_poster(movie_name, release_year):
     tmdb_search_url = f'https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={movie_name}'
     
