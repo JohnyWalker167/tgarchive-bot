@@ -4,6 +4,8 @@ from config import TMDB_API_KEY
 
 POSTER_BASE_URL = 'https://image.tmdb.org/t/p/original'
 
+MAX_OVERVIEW_LENGTH = 500  # Limit overview to 500 characters to prevent exceeding Telegram's limit.
+
 async def get_tmdb_info(tmdb_url):
     """
     Fetches and formats information from TMDb based on the given URL for movie, TV show, or collection.
@@ -59,6 +61,7 @@ def format_tmdb_info(tmdb_type, data):
     if tmdb_type == 'movie':
         genres = ", ".join([genre['name'] for genre in data.get('genres', [])])
         runtime = f"{data.get('runtime', 'N/A')} minutes"
+        overview = truncate_overview(data.get('overview', 'N/A'))
         
         message = (
             f"🎬 <b>{data.get('title', 'N/A')}</b>\n"
@@ -66,14 +69,14 @@ def format_tmdb_info(tmdb_type, data):
             f"⭐ <b>Rating:</b> {data.get('vote_average', 'N/A')} ({data.get('vote_count', '0')} votes)\n"
             f"🎥 <b>Runtime:</b> {runtime}\n"
             f"🎭 <b>Genres:</b> {genres}\n"
-            f"📃 <b>Overview:</b> {data.get('overview', 'N/A')}\n"
-            f"📃 <b>Overview:</b> {data.get('overview', 'N/A')}\n"
+            f"📃 <b>Overview:</b> {overview}\n"
         )
         
     elif tmdb_type == 'tv':
         genres = ", ".join([genre['name'] for genre in data.get('genres', [])])
         num_episodes = data.get('number_of_episodes', 'N/A')
         num_seasons = data.get('number_of_seasons', 'N/A')
+        overview = truncate_overview(data.get('overview', 'N/A'))
         
         message = (
             f"📺 <b>{data.get('name', 'N/A')}</b>\n"
@@ -82,30 +85,36 @@ def format_tmdb_info(tmdb_type, data):
             f"📅 <b>Number of Seasons:</b> {num_seasons}\n"
             f"📺 <b>Number of Episodes:</b> {num_episodes}\n"
             f"🎭 <b>Genres:</b> {genres}\n"
-            f"📃 <b>Overview:</b> {data.get('overview', 'N/A')}\n"
+            f"📃 <b>Overview:</b> {overview}\n"
             f"🎞 <b>Original Language:</b> {data.get('original_language', 'N/A')}"
         )
         
     elif tmdb_type == 'collection':
         parts = data.get('parts', [])
         movie_titles = ", ".join([movie['title'] for movie in parts]) or "N/A"
+        overview = truncate_overview(data.get('overview', 'N/A'))
         
         message = (
             f"🎞 <b>{data.get('name', 'N/A')}</b>\n"
             f"🎬 <b>Number of Movies:</b> {len(parts)}\n"
             f"🎥 <b>Movies in Collection:</b> {movie_titles}\n"
-            f"📃 <b>Overview:</b> {data.get('overview', 'N/A')}\n"
+            f"📃 <b>Overview:</b> {overview}\n"
         )
     else:
         message = "Unknown type. Unable to format information."
     
     return message
 
-# Example usage:
-'''
-tmdb_url = 'https://www.themoviedb.org/movie/550'  # Replace with any valid TMDb URL
-result = get_tmdb_info(tmdb_url)
-print(result['message'])
-print(result['poster_url'])
-'''
+def truncate_overview(overview):
+    """
+    Truncate the overview if it exceeds the specified limit.
 
+    Args:
+    - overview (str): The overview text from the API.
+
+    Returns:
+    - str: Truncated overview with an ellipsis if it exceeds the limit.
+    """
+    if len(overview) > MAX_OVERVIEW_LENGTH:
+        return overview[:MAX_OVERVIEW_LENGTH] + "..."
+    return overview
