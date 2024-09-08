@@ -6,7 +6,7 @@ from time import time as tm
 from pyrogram import idle
 from pyromod import listen
 from pyrogram.errors import FloodWait
-from pyrogram import Client, filters, enums
+from pyrogram import Client, filters, enums, types
 from shorterner import *
 from asyncio import get_event_loop
 from pymongo import MongoClient
