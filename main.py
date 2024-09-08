@@ -1,3 +1,4 @@
+import os
 import uuid
 from utils import *
 from config import *
@@ -53,17 +54,24 @@ async def forward_message_to_channel(client, message):
     caption = message.caption if message.caption else None
     if caption:
         new_caption = await remove_unwanted(caption)
+        movie_name, release_year = await extract_movie_info(new_caption)
         no_ext = await remove_extension(new_caption)
         try:
             cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
             file_info = f"🎞️ <b>{no_ext}</b>\n\n🆔 <code>{cpy_msg.id}</code>"
-            await app.send_message(CAPTION_CHANNEL_ID, text=file_info)
+            rply = await message.reply_text("Send Photo")
+            photo_msg = await app.listen(message.chat.id, filters=filters.photo)
+            thumb_path = await app.download_media(photo_msg, file_name=f'photo_{message.id}.jpg')
+            await app.send_photo(CAPTION_CHANNEL_ID, thumb_path, caption=file_info)
+            os.remove(thumb_path)
+            await rply.delete()
+            await photo_msg.delete()
             await message.delete()
             await asyncio.sleep(3)
 
         except Exception as e:
             logger.error(f'{e}')
-          
+'''          
 @app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
 async def get_info(client, message):
     rply = await message.reply_text("Send TMDb link")
@@ -81,6 +89,7 @@ async def get_info(client, message):
     await auto_delete_message(message, rply)
     await tmdb_msg.delete()
     await asyncio.sleep(3)
+'''
 
 
 @app.on_message(filters.private & filters.command("start"))
@@ -149,7 +158,7 @@ async def handle_get_command(client, message):
     else:
         reply = await message.reply_text("Provide a File Id")
         await auto_delete_message(message, reply)  
-
+       
 # Delete Commmand
 @app.on_message(filters.command("delete") & filters.user(OWNER_USERNAME))
 async def delete_command(client, message):
