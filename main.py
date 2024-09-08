@@ -98,8 +98,7 @@ async def spoiler_callback(client, callback_query):
     # Update the dictionary with the new has_spoiler value for this task
     spoiler_settings[message_id] = spoiler_value
     await callback_query.answer(f"Set to {spoiler_value}")
-        
-'''          
+                 
 @app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
 async def get_info(client, message):
     rply = await message.reply_text("Send TMDb link")
@@ -117,8 +116,6 @@ async def get_info(client, message):
     await auto_delete_message(message, rply)
     await tmdb_msg.delete()
     await asyncio.sleep(3)
-'''
-
 
 @app.on_message(filters.private & filters.command("start"))
 async def get_command(client, message): 
