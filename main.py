@@ -98,7 +98,6 @@ async def spoiler_callback(client, callback_query):
     # Update the dictionary with the new has_spoiler value for this task
     spoiler_settings[message_id] = spoiler_value
     await callback_query.answer(f"Set to {spoiler_value}")
-    await callback_query.message.delete()
         
 '''          
 @app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
