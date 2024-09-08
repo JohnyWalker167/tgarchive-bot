@@ -72,9 +72,11 @@ async def pyro_task(client, message):
     
     thumb_path = await app.download_media(photo_msg, file_name=f'photo_{message.id}.jpg')
     await photo_msg.delete()
+    await rply.delete()
     
     try:
         cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
+        await message.delete()
         file_info = f"🎞️ <b>{no_ext}</b>\n\n🆔 <code>{cpy_msg.id}</code>"
         await app.send_photo(CAPTION_CHANNEL_ID, thumb_path, caption=file_info, has_spoiler=spoiler_settings[message.id])
         await asyncio.sleep(3)
