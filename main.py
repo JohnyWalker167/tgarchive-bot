@@ -23,6 +23,8 @@ mongo_collection = mongo_db[MONGO_COLLECTION]
 user_data = {}
 TOKEN_TIMEOUT = 7200
 
+spoiler_settings = {}
+
 app = Client(
     "my_bot",
       api_id=API_ID,
@@ -40,7 +42,6 @@ user = Client(
                 no_updates = True
             )
 
-
 async def main():
     async with app, user:
         await idle()
@@ -48,29 +49,55 @@ async def main():
 with app:
     bot_username = (app.get_me()).username
 
-@app.on_message(filters.private & (filters.document | filters.video) & filters.user(OWNER_USERNAME))
-async def forward_message_to_channel(client, message):
-
+@app.on_message(filters.private & (filters.document | filters.video | filters.photo) & filters.user(OWNER_USERNAME))
+async def pyro_task(client, message):
     caption = message.caption if message.caption else None
     if caption:
         new_caption = await remove_unwanted(caption)
-        movie_name, release_year = await extract_movie_info(new_caption)
         no_ext = await remove_extension(new_caption)
-        try:
-            cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
-            file_info = f"🎞️ <b>{no_ext}</b>\n\n🆔 <code>{cpy_msg.id}</code>"
-            rply = await message.reply_text("Send Photo")
-            photo_msg = await app.listen(message.chat.id, filters=filters.photo)
-            thumb_path = await app.download_media(photo_msg, file_name=f'photo_{message.id}.jpg')
-            await app.send_photo(CAPTION_CHANNEL_ID, thumb_path, caption=file_info)
-            os.remove(thumb_path)
-            await rply.delete()
-            await photo_msg.delete()
-            await message.delete()
-            await asyncio.sleep(3)
+    # Initialize the has_spoiler setting for this task/message
+    spoiler_settings[message.id] = False
 
-        except Exception as e:
-            logger.error(f'{e}')
+    rply = await message.reply_text(
+        f"Please send a photo\nSelect the spoiler setting:",
+        reply_markup=types.InlineKeyboardMarkup(
+            [
+                [types.InlineKeyboardButton("True", callback_data=f"set_spoiler_true_{message.id}")],
+                [types.InlineKeyboardButton("False", callback_data=f"set_spoiler_false_{message.id}")]
+            ]
+        )
+    )
+    
+    photo_msg = await app.listen(message.chat.id, filters=filters.photo)
+    
+    thumb_path = await app.download_media(photo_msg, file_name=f'photo_{message.id}.jpg')
+    await photo_msg.delete()
+    
+    try:
+        cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
+        file_info = f"🎞️ <b>{new_caption}</b>\n\n🆔 <code>{send_msg.id}</code>"
+        await app.send_photo(CAPTION_CHANNEL_ID, thumb_path, caption=file_info, has_spoiler=spoiler_settings[message.id])
+        await asyncio.sleep(3)
+        
+    except Exception as e:
+        logger.error(f'{e}')
+    finally:
+        if os.path.exists(thumb_path):
+            os.remove(thumb_path)
+        # Clean up the spoiler setting for this message ID
+        spoiler_settings.pop(message.id, None)
+
+@app.on_callback_query(filters.regex(r"set_spoiler_(true|false)_\d+"))
+async def spoiler_callback(client, callback_query):
+    data_parts = callback_query.data.split('_')
+    spoiler_value = data_parts[2] == "true"
+    message_id = int(data_parts[3])
+    
+    # Update the dictionary with the new has_spoiler value for this task
+    spoiler_settings[message_id] = spoiler_value
+    await callback_query.answer(f"Set to {spoiler_value}")
+    await callback_query.message.delete()
+        
 '''          
 @app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
 async def get_info(client, message):
@@ -206,7 +233,7 @@ async def total_users_command(client, message):
 @app.on_message(filters.private & filters.command("help"))
 async def handle_help_command(client, message):
     try:
-        file_id = 60
+        file_id = 3
         get_msg = await app.get_messages(DB_CHANNEL_ID, int(file_id))
         send_msg = await get_msg.copy(chat_id=message.chat.id)
         await message.delete()
