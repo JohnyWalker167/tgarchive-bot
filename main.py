@@ -101,6 +101,7 @@ async def get_info(client, message):
         poster_url = result['poster_url']
         caption = result['message']
         await app.send_photo(CAPTION_CHANNEL_ID, photo=poster_url, caption=caption, parse_mode=enums.ParseMode.HTML)
+        await app.send_sticker(CAPTION_CHANNEL_ID, file_id="CAACAgUAAxkBAAEbIOJm3zbH5WbUgYZsjrLhOozq0QpfYgACHwkAAv-nKFVWzcN3HOt69TYE")
         await auto_delete_message(message, rply)
         await tmdb_msg.delete()
         await asyncio.sleep(3)
