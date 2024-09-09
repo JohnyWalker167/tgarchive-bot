@@ -65,7 +65,7 @@ async def forward_message(client, message):
         await asyncio.sleep(3)
         
     except Exception as e:
-        logger.error(f'{e}')
+        logger.error(f"{e}")
 
 
 @app.on_message(filters.private & filters.command("info") & filters.user(OWNER_USERNAME))
@@ -91,7 +91,7 @@ async def getinfo_message(client, message):
             await asyncio.sleep(3)
         
     except Exception as e:
-        logger.error(f'{e}')
+        logger.error(f"{e}")
 
 @app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
 async def get_info(client, message):
