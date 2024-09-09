@@ -43,6 +43,25 @@ async def remove_extension(caption):
     except Exception as e:
         logger.error(e)
         return None
+    
+async def get_sticker(caption):
+    small = "CAACAgUAAxkBAAEbIPRm3zyR_cJSsuHrFaWtFTL0Fxg4VQACLQgAAo2CIFdu8Xb02-Ck1zYE"
+    big = "CAACAgUAAxkBAAEbIMhm3zIgOvPwF7Vpgok2-1pe1PrXywAC1gkAAqzNKVfogSiZyNQ8WDYE"
+    large = "CAACAgUAAxkBAAEbIPhm3z0DFCfiB0J_BmpjzslA3YuOwAAC8wYAAtXJOVVPrZPulHguKjYE"
+
+    try:
+        # Use regular expressions to check for resolution patterns in the caption
+        if re.search(r'720p', caption, re.IGNORECASE):
+            return small
+        elif re.search(r'1080p', caption, re.IGNORECASE):
+            return big
+        elif re.search(r'2160p', caption, re.IGNORECASE):
+            return large
+        else:
+            return None   # Default sticker if no resolution is found
+    except Exception as e:
+        logger.error(e)
+        return None    
 
 async def remove_unwanted(input_string):
     # Use regex to match .mkv or .mp4 and everything that follows
