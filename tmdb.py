@@ -86,7 +86,6 @@ def format_tmdb_info(tmdb_type, data):
             f"📺 <b>Number of Episodes:</b> {num_episodes}\n"
             f"🎭 <b>Genres:</b> {genres}\n"
             f"📃 <b>Overview:</b> {overview}\n"
-            f"🎞 <b>Original Language:</b> {data.get('original_language', 'N/A')}"
         )
         
     elif tmdb_type == 'collection':
@@ -97,7 +96,6 @@ def format_tmdb_info(tmdb_type, data):
         message = (
             f"🎞 <b>{data.get('name', 'N/A')}</b>\n"
             f"🎬 <b>Number of Movies:</b> {len(parts)}\n"
-            f"🎥 <b>Movies in Collection:</b> {movie_titles}\n"
             f"📃 <b>Overview:</b> {overview}\n"
         )
     else:
