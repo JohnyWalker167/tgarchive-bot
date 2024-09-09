@@ -6,7 +6,7 @@ from time import time as tm
 from pyrogram import idle
 from pyromod import listen
 from pyrogram.errors import FloodWait
-from pyrogram import Client, filters, enums, types
+from pyrogram import Client, filters, enums
 from shorterner import *
 from asyncio import get_event_loop
 from pymongo import MongoClient
@@ -63,7 +63,29 @@ async def forward_message(client, message):
         
     except Exception as e:
         logger.error(f'{e}')
-                     
+
+
+@app.on_message(filters.private & filters.command("info") & filters.user(OWNER_USERNAME))
+async def getinfo_message(client, message):
+    await message.delete()
+    media_msg = await app.listen(message.chat.id, filters=(filters.video | filters.document))
+
+    caption = media_msg.caption if media_msg.caption else None
+    if caption:
+        new_caption = await remove_unwanted(caption)
+    try:
+        movie_name, release_year = await extract_movie_info(new_caption)
+        result = await get_movie_poster(movie_name, release_year)
+        poster_url = result['poster_url']
+        info = result['message']
+        if poster_url:
+            await app.send_photo(CAPTION_CHANNEL_ID, photo=poster_url, caption=info, parse_mode=enums.ParseMode.HTML)
+            await media_msg.delete()
+            await asyncio.sleep(3)
+        
+    except Exception as e:
+        logger.error(f'{e}')
+
 @app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
 async def get_info(client, message):
     try:
