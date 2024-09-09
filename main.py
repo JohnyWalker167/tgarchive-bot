@@ -66,21 +66,24 @@ async def forward_message(client, message):
                      
 @app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
 async def get_info(client, message):
-    rply = await message.reply_text("Send TMDb link")
+    try:
+        rply = await message.reply_text("Send TMDb link")
 
-    # Listen for the next message (the TMDb URL)
-    tmdb_msg = await app.listen(message.chat.id)
+        # Listen for the next message (the TMDb URL)
+        tmdb_msg = await app.listen(message.chat.id)
 
-    # Extract the URL from the listened message
-    tmdb_url = tmdb_msg.text
+        # Extract the URL from the listened message
+        tmdb_url = tmdb_msg.text
 
-    result = await get_tmdb_info(tmdb_url)
-    poster_url = result['poster_url']
-    caption = result['message']
-    await app.send_photo(CAPTION_CHANNEL_ID, photo=poster_url, caption=caption, parse_mode=enums.ParseMode.HTML)
-    await auto_delete_message(message, rply)
-    await tmdb_msg.delete()
-    await asyncio.sleep(3)
+        result = await get_tmdb_info(tmdb_url)
+        poster_url = result['poster_url']
+        caption = result['message']
+        await app.send_photo(CAPTION_CHANNEL_ID, photo=poster_url, caption=caption, parse_mode=enums.ParseMode.HTML)
+        await auto_delete_message(message, rply)
+        await tmdb_msg.delete()
+        await asyncio.sleep(3)
+    except Exception as e:
+        logger.error(f"{e}")
 
 @app.on_message(filters.private & filters.command("start"))
 async def get_command(client, message): 
