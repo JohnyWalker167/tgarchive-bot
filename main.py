@@ -22,6 +22,7 @@ mongo_collection = mongo_db[MONGO_COLLECTION]
 
 user_data = {}
 TOKEN_TIMEOUT = 7200
+blank_sticker = "CAACAgUAAxkBAAEbIOJm3zbH5WbUgYZsjrLhOozq0QpfYgACHwkAAv-nKFVWzcN3HOt69TYE"
 
 app = Client(
     "my_bot",
@@ -50,7 +51,6 @@ with app:
 @app.on_message(filters.private & (filters.document | filters.video | filters.photo) & filters.user(OWNER_USERNAME))
 async def forward_message(client, message):
     caption = message.caption if message.caption else None
-    sticker = await get_sticker(caption)
     if caption:
         new_caption = await remove_unwanted(caption)
         no_ext = await remove_extension(new_caption)
@@ -59,8 +59,7 @@ async def forward_message(client, message):
         cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
         await message.delete()
         file_info = f"🎞️ <b>{no_ext}</b>\n\n🆔 <code>{cpy_msg.id}</code>"
-        await app.send_sticker(CAPTION_CHANNEL_ID, sticker)
-        await asyncio.sleep(3)
+        await app.send_sticker(CAPTION_CHANNEL_ID, blank_sticker)
         await app.send_message(CAPTION_CHANNEL_ID, text=file_info)
         await asyncio.sleep(3)
         
@@ -84,8 +83,7 @@ async def getinfo_message(client, message):
         poster_url = result['poster_url']
         info = result['message']
         if poster_url:
-            await app.send_sticker(CAPTION_CHANNEL_ID, sticker)
-            await asyncio.sleep(3)
+            await app.send_sticker(CAPTION_CHANNEL_ID, blank_sticker)
             await app.send_photo(CAPTION_CHANNEL_ID, photo=poster_url, caption=info, parse_mode=enums.ParseMode.HTML)
             await media_msg.delete()
             await asyncio.sleep(3)
@@ -108,8 +106,7 @@ async def get_info(client, message):
         result = await get_tmdb_info(tmdb_url)
         poster_url = result['poster_url']
         caption = result['message']
-        await app.send_sticker(CAPTION_CHANNEL_ID, sticker)
-        await asyncio.sleep(3)
+        await app.send_sticker(CAPTION_CHANNEL_ID, blank_sticker)
         await app.send_photo(CAPTION_CHANNEL_ID, photo=poster_url, caption=caption, parse_mode=enums.ParseMode.HTML)
         await asyncio.sleep(3)
         await auto_delete_message(message, rply)
