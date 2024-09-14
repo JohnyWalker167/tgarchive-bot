@@ -20,7 +20,7 @@ mongo_db = mongo_client[MONGO_DB_NAME]
 mongo_collection = mongo_db[MONGO_COLLECTION]
 
 user_data = {}
-TOKEN_TIMEOUT = 7200
+TOKEN_TIMEOUT = 28800
 blank_sticker = "CAACAgUAAxkBAAEbIOJm3zbH5WbUgYZsjrLhOozq0QpfYgACHwkAAv-nKFVWzcN3HOt69TYE"
 
 app = Client(
