@@ -243,7 +243,7 @@ async def verify_token(user_id, input_token):
     stored_token = user_data[user_id]['token']
     if input_token == stored_token:
         token = str(uuid.uuid4())
-        user_data[user_id] = {"token": token, "time": current_time, "status": "verified"}
+        user_data[user_id] = {"token": token, "time": current_time, "status": "verified", "file_count": 0}
         return f'Token Verified ✅'
     else:
         return f'Token Mismatched ❌'
