@@ -147,6 +147,8 @@ async def handle_get_command(client, message):
                 if caption:
                     new_caption = await remove_extension(caption.html)
                     copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
+                    user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
+
                 else:
                     copy_message = await file_message.copy(chat_id=message.chat.id)
                     user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
@@ -167,8 +169,12 @@ async def handle_get_command(client, message):
             await asyncio.sleep(f.value)
             if caption:
                 copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
+                user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
+
             else:
                 copy_message = await file_message.copy(chat_id=message.chat.id)
+                user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
+
 
             await auto_delete_message(message, copy_message)
             user_data[user_id]['file_count'] += 1
