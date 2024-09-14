@@ -11,7 +11,6 @@ from shorterner import *
 from asyncio import get_event_loop
 from pymongo import MongoClient
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from tmdb import get_tmdb_info
 
 loop = get_event_loop()
 
@@ -48,73 +47,6 @@ async def main():
 with app:
     bot_username = (app.get_me()).username
 
-@app.on_message(filters.private & (filters.document | filters.video | filters.photo) & filters.user(OWNER_USERNAME))
-async def forward_message(client, message):
-    caption = message.caption if message.caption else None
-    if caption:
-        new_caption = await remove_unwanted(caption)
-        no_ext = await remove_extension(new_caption)
-    
-    try:
-        cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
-        await message.delete()
-        file_info = f"🎞️ <b>{no_ext}</b>\n\n🆔 <code>{cpy_msg.id}</code>"
-        await app.send_sticker(CAPTION_CHANNEL_ID, blank_sticker)
-        await app.send_message(CAPTION_CHANNEL_ID, text=file_info)
-        await asyncio.sleep(3)
-        
-    except Exception as e:
-        logger.error(f"{e}")
-
-
-@app.on_message(filters.private & filters.command("info") & filters.user(OWNER_USERNAME))
-async def getinfo_message(client, message):
-    sticker = "CAACAgUAAxkBAAEbIPpm3z0ZbOYM_uXIAAEGRVV1jWXzIBkAAs8HAAItnzhVMpXGdvJOYgk2BA"
-
-    await message.delete()
-    media_msg = await app.listen(message.chat.id, filters=(filters.video | filters.document))
-
-    caption = media_msg.caption if media_msg.caption else None
-    if caption:
-        new_caption = await remove_unwanted(caption)
-    try:
-        movie_name, release_year = await extract_movie_info(new_caption)
-        result = await get_movie_poster(movie_name, release_year)
-        poster_url = result['poster_url']
-        info = result['message']
-        if poster_url:
-            await app.send_sticker(CAPTION_CHANNEL_ID, blank_sticker)
-            await app.send_photo(CAPTION_CHANNEL_ID, photo=poster_url, caption=info, parse_mode=enums.ParseMode.HTML)
-            await media_msg.delete()
-            await asyncio.sleep(3)
-        
-    except Exception as e:
-        logger.error(f"{e}")
-
-@app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
-async def get_info(client, message):
-    sticker = "CAACAgUAAxkBAAEbIPpm3z0ZbOYM_uXIAAEGRVV1jWXzIBkAAs8HAAItnzhVMpXGdvJOYgk2BA"
-    try:
-        rply = await message.reply_text("Send TMDb link")
-
-        # Listen for the next message (the TMDb URL)
-        tmdb_msg = await app.listen(message.chat.id)
-
-        # Extract the URL from the listened message
-        tmdb_url = tmdb_msg.text
-
-        result = await get_tmdb_info(tmdb_url)
-        poster_url = result['poster_url']
-        caption = result['message']
-        await app.send_sticker(CAPTION_CHANNEL_ID, blank_sticker)
-        await app.send_photo(CAPTION_CHANNEL_ID, photo=poster_url, caption=caption, parse_mode=enums.ParseMode.HTML)
-        await asyncio.sleep(3)
-        await auto_delete_message(message, rply)
-        await tmdb_msg.delete()
-        await asyncio.sleep(3)
-    except Exception as e:
-        logger.error(f"{e}")
-
 @app.on_message(filters.private & filters.command("start"))
 async def get_command(client, message): 
      input_token = message.command[1] if len(message.command) > 1 else None
@@ -135,12 +67,72 @@ async def get_command(client, message):
         reply = await message.reply_text(f"<b>💐Welcome this is TG⚡️Flix Bot")
         await auto_delete_message(message, reply)
 
+@app.on_message(filters.chat(DB_CHANNEL_ID) & (filters.audio))
+async def forward_message_to_new_channel(client, message):
+    try:
+        media = message.audio
+        file_id = message.id
+
+        if media:
+            audio_path = await app.download_media(media.file_id)
+            audio_thumb = await get_audio_thumbnail(audio_path)
+            
+            file_info = f"🎧 <b>{media.title}</b>\n🧑‍🎤 <b>{media.performer}</b>\n\n<code>🆔 {file_id}</code>"
+
+            await app.send_photo(CAPTION_CHANNEL_ID, audio_thumb, caption=file_info)
+
+            os.remove(audio_path)
+
+            await asyncio.sleep(3)
+                        
+    except Exception as e:
+        logger.error(f'{e}')    
+
+@app.on_message(filters.command("send") & filters.user(OWNER_USERNAME))
+async def send_msg(client, message):
+    try:
+        await message.reply_text("send post start link")
+        start_msg = (await app.listen(message.chat.id)).text
+
+        await message.reply_text("send post end link")
+        end_msg = (await app.listen(message.chat.id)).text
+
+        start_msg_id = int(await extract_tg_link(start_msg))
+        end_msg_id = int(await extract_tg_link(end_msg))
+
+        batch_size = 199
+        for start in range(start_msg_id, end_msg_id + 1, batch_size):
+            end = min(start + batch_size - 1, end_msg_id)  # Ensure we don't go beyond end_msg_id
+            file_messages = await app.get_messages(DB_CHANNEL_ID, range(start, end + 1))
+
+            for file_message in file_messages:
+
+                media = file_message.audio
+                file_id = file_message.id
+                if media:         
+                    audio_path = await app.download_media(media.file_id)
+                    audio_thumb = await get_audio_thumbnail(audio_path)
+                    
+                    file_info = f"🎧 <b>{media.title}</b>\n🧑‍🎤 <b>{media.performer}</b>\n\n🆔 <code>{file_id}</code>"
+
+                    await app.send_photo(CAPTION_CHANNEL_ID, audio_thumb, caption=file_info)
+
+                    os.remove(audio_path)
+
+                    await asyncio.sleep(3)
+                    
+        await message.reply_text("Messages send successfully!")
+
+    except FloodWait as e:
+        await asyncio.sleep(e.value)
+
+    except Exception as e:
+        logger.error(f'{e}')
 
 # Get Command      
 @app.on_message(filters.private & filters.command("get"))
 async def handle_get_command(client, message):
     user_id = message.from_user.id
-    
     if not await check_access(message, user_id):
          return
     
@@ -157,8 +149,10 @@ async def handle_get_command(client, message):
                     copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
                 else:
                     copy_message = await file_message.copy(chat_id=message.chat.id)
+                    user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
 
                 await auto_delete_message(message, copy_message)
+
                 await asyncio.sleep(3)
 
             else:
@@ -177,6 +171,7 @@ async def handle_get_command(client, message):
                 copy_message = await file_message.copy(chat_id=message.chat.id)
 
             await auto_delete_message(message, copy_message)
+            user_data[user_id]['file_count'] += 1
             await asyncio.sleep(3)
     else:
         reply = await message.reply_text("Provide a File Id")
@@ -258,10 +253,16 @@ async def check_access(message, user_id):
     if user_id in user_data:
         time = user_data[user_id]['time']
         status = user_data[user_id]['status']
+        file_count = user_data[user_id].get('file_count', 0)
         expiry = time + TOKEN_TIMEOUT
         current_time = tm()
+
         if current_time < expiry and status == "verified":
-            return True
+            if file_count < 10:
+                return True
+            else:
+                reply = await message.reply_text(f"You have reached the limit. Please wait until the token expires")
+                await auto_delete_message(message, reply)
         else:
             button = await update_token(user_id)
             send_message = await app.send_message(user_id,f'<b>You need to collect your token first 🎟\n(Valid: {get_readable_time(TOKEN_TIMEOUT)})</b>', reply_markup=button)
@@ -280,7 +281,7 @@ async def update_token(user_id):
         else:
             token = str(uuid.uuid4())
         current_time = tm()
-        user_data[user_id] = {"token": token, "time": current_time, "status": "unverified"}
+        user_data[user_id] = {"token": token, "time": current_time, "status": "unverified", "file_count": 0}
         urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start={token}')
         button = InlineKeyboardMarkup([[InlineKeyboardButton("Collect Token", url=urlshortx)]])
         return button
@@ -291,7 +292,7 @@ async def genrate_token(user_id):
     try:
         token = str(uuid.uuid4())
         current_time = tm()
-        user_data[user_id] = {"token": token, "time": current_time, "status": "unverified"}
+        user_data[user_id] = {"token": token, "time": current_time, "status": "unverified", "file_count": 0}
         urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start={token}')
         button = InlineKeyboardMarkup([[InlineKeyboardButton("Collect Token", url=urlshortx)]])
         return button

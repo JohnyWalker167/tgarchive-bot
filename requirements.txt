@@ -8,3 +8,4 @@ gunicorn
 wget
 requests
 aiohttp
+mutagen

@@ -1,8 +1,15 @@
+import io
 import re
 import requests
 import aiohttp
 import asyncio
 from config import *
+from mutagen.mp3 import MP3
+from mutagen.flac import FLAC
+from mutagen.mp4 import MP4
+from mutagen.id3 import ID3, APIC
+from mutagen import File as MutagenFile
+
 from pyrogram.types import User
 
 POSTER_BASE_URL = 'https://image.tmdb.org/t/p/original'
@@ -206,3 +213,32 @@ def truncate_overview(overview):
     if len(overview) > MAX_OVERVIEW_LENGTH:
         return overview[:MAX_OVERVIEW_LENGTH] + "..."
     return overview
+
+async def get_audio_thumbnail(audio_path):
+    audio = MutagenFile(audio_path)
+    if isinstance(audio, MP3):
+        if audio.tags and isinstance(audio.tags, ID3):
+            for tag in audio.tags.values():
+                if isinstance(tag, APIC):
+                    return io.BytesIO(tag.data)
+    elif isinstance(audio, FLAC):
+        if audio.pictures:
+            return io.BytesIO(audio.pictures[0].data)
+    elif isinstance(audio, MP4):
+        if audio.tags and 'covr' in audio.tags:
+            cover = audio.tags['covr'][0]
+            return io.BytesIO(cover)
+        
+    return None
+
+async def extract_tg_link(telegram_link):
+    try:
+        pattern = re.compile(r'https://t\.me/c/(-?\d+)/(\d+)')
+        match = pattern.match(telegram_link)
+        if match:
+            message_id = match.group(2)
+            return message_id
+        else:
+            return None, None
+    except Exception as e:
+        logger.error(e)
