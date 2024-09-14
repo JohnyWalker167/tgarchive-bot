@@ -21,7 +21,7 @@ mongo_db = mongo_client[MONGO_DB_NAME]
 mongo_collection = mongo_db[MONGO_COLLECTION]
 
 user_data = {}
-TOKEN_TIMEOUT = 7200
+TOKEN_TIMEOUT = 28800
 blank_sticker = "CAACAgUAAxkBAAEbIOJm3zbH5WbUgYZsjrLhOozq0QpfYgACHwkAAv-nKFVWzcN3HOt69TYE"
 
 app = Client(
@@ -155,8 +155,10 @@ async def handle_get_command(client, message):
                 if caption:
                     new_caption = await remove_extension(caption.html)
                     copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
+                    user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
                 else:
                     copy_message = await file_message.copy(chat_id=message.chat.id)
+                    user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
 
                 await auto_delete_message(message, copy_message)
                 await asyncio.sleep(3)
@@ -173,8 +175,10 @@ async def handle_get_command(client, message):
             await asyncio.sleep(f.value)
             if caption:
                 copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
+                user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
             else:
                 copy_message = await file_message.copy(chat_id=message.chat.id)
+                user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
 
             await auto_delete_message(message, copy_message)
             await asyncio.sleep(3)
@@ -248,7 +252,7 @@ async def verify_token(user_id, input_token):
     stored_token = user_data[user_id]['token']
     if input_token == stored_token:
         token = str(uuid.uuid4())
-        user_data[user_id] = {"token": token, "time": current_time, "status": "verified"}
+        user_data[user_id] = {"token": token, "time": current_time, "status": "verified", "file_count": 0}
         return f'Token Verified ✅'
     else:
         return f'Token Mismatched ❌'
@@ -258,10 +262,15 @@ async def check_access(message, user_id):
     if user_id in user_data:
         time = user_data[user_id]['time']
         status = user_data[user_id]['status']
+        file_count = user_data[user_id].get('file_count', 0)
         expiry = time + TOKEN_TIMEOUT
         current_time = tm()
         if current_time < expiry and status == "verified":
-            return True
+            if file_count < 10:
+                return True
+            else:
+                reply = await message.reply_text(f"You have reached the limit. Please wait until the token expires")
+                await auto_delete_message(message, reply)
         else:
             button = await update_token(user_id)
             send_message = await app.send_message(user_id,f'<b>You need to collect your token first 🎟\n(Valid: {get_readable_time(TOKEN_TIMEOUT)})</b>', reply_markup=button)
@@ -280,7 +289,7 @@ async def update_token(user_id):
         else:
             token = str(uuid.uuid4())
         current_time = tm()
-        user_data[user_id] = {"token": token, "time": current_time, "status": "unverified"}
+        user_data[user_id] = {"token": token, "time": current_time, "status": "unverified", "file_count": 0}
         urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start={token}')
         button = InlineKeyboardMarkup([[InlineKeyboardButton("Collect Token", url=urlshortx)]])
         return button
@@ -291,7 +300,7 @@ async def genrate_token(user_id):
     try:
         token = str(uuid.uuid4())
         current_time = tm()
-        user_data[user_id] = {"token": token, "time": current_time, "status": "unverified"}
+        user_data[user_id] = {"token": token, "time": current_time, "status": "unverified", "file_count": 0}
         urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start={token}')
         button = InlineKeyboardMarkup([[InlineKeyboardButton("Collect Token", url=urlshortx)]])
         return button
