@@ -1,4 +1,3 @@
-import os
 import uuid
 from utils import *
 from config import *
@@ -11,7 +10,6 @@ from shorterner import *
 from asyncio import get_event_loop
 from pymongo import MongoClient
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from tmdb import get_tmdb_info
 
 loop = get_event_loop()
 
@@ -22,7 +20,6 @@ mongo_collection = mongo_db[MONGO_COLLECTION]
 
 user_data = {}
 TOKEN_TIMEOUT = 28800
-blank_sticker = "CAACAgUAAxkBAAEbIOJm3zbH5WbUgYZsjrLhOozq0QpfYgACHwkAAv-nKFVWzcN3HOt69TYE"
 
 app = Client(
     "my_bot",
@@ -48,105 +45,34 @@ async def main():
 with app:
     bot_username = (app.get_me()).username
 
-@app.on_message(filters.private & (filters.document | filters.video | filters.photo) & filters.user(OWNER_USERNAME))
-async def forward_message(client, message):
-    caption = message.caption if message.caption else None
-    if caption:
-        new_caption = await remove_unwanted(caption)
-        no_ext = await remove_extension(new_caption)
-    
-    try:
-        cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
-        await message.delete()
-        file_info = f"🎞️ <b>{no_ext}</b>\n\n🆔 <code>{cpy_msg.id}</code>"
-        await app.send_sticker(CAPTION_CHANNEL_ID, blank_sticker)
-        await app.send_message(CAPTION_CHANNEL_ID, text=file_info)
-        await asyncio.sleep(3)
-        
-    except Exception as e:
-        logger.error(f"{e}")
-
-
-@app.on_message(filters.private & filters.command("info") & filters.user(OWNER_USERNAME))
-async def getinfo_message(client, message):
-    sticker = "CAACAgUAAxkBAAEbIPpm3z0ZbOYM_uXIAAEGRVV1jWXzIBkAAs8HAAItnzhVMpXGdvJOYgk2BA"
-
-    await message.delete()
-    media_msg = await app.listen(message.chat.id, filters=(filters.video | filters.document))
-
-    caption = media_msg.caption if media_msg.caption else None
-    if caption:
-        new_caption = await remove_unwanted(caption)
-    try:
-        movie_name, release_year = await extract_movie_info(new_caption)
-        result = await get_movie_poster(movie_name, release_year)
-        poster_url = result['poster_url']
-        info = result['message']
-        if poster_url:
-            await app.send_sticker(CAPTION_CHANNEL_ID, blank_sticker)
-            await app.send_photo(CAPTION_CHANNEL_ID, photo=poster_url, caption=info, parse_mode=enums.ParseMode.HTML)
-            await media_msg.delete()
-            await asyncio.sleep(3)
-        
-    except Exception as e:
-        logger.error(f"{e}")
-
-@app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
-async def get_info(client, message):
-    sticker = "CAACAgUAAxkBAAEbIPpm3z0ZbOYM_uXIAAEGRVV1jWXzIBkAAs8HAAItnzhVMpXGdvJOYgk2BA"
-    try:
-        rply = await message.reply_text("Send TMDb link")
-
-        # Listen for the next message (the TMDb URL)
-        tmdb_msg = await app.listen(message.chat.id)
-
-        # Extract the URL from the listened message
-        tmdb_url = tmdb_msg.text
-
-        result = await get_tmdb_info(tmdb_url)
-        poster_url = result['poster_url']
-        caption = result['message']
-        await app.send_sticker(CAPTION_CHANNEL_ID, blank_sticker)
-        await app.send_photo(CAPTION_CHANNEL_ID, photo=poster_url, caption=caption, parse_mode=enums.ParseMode.HTML)
-        await asyncio.sleep(3)
-        await auto_delete_message(message, rply)
-        await tmdb_msg.delete()
-        await asyncio.sleep(3)
-    except Exception as e:
-        logger.error(f"{e}")
-
 @app.on_message(filters.private & filters.command("start"))
-async def get_command(client, message): 
-     input_token = message.command[1] if len(message.command) > 1 else None
-     user_id = message.from_user.id
-     user_link = await get_user_link(message.from_user)
-
-     if input_token:
-          token_msg = await verify_token(user_id, input_token)
-          reply = await message.reply_text(token_msg)
-          await app.send_message(LOG_CHANNEL_ID, f"User🕵️‍♂️{user_link} with 🆔 {user_id} @{bot_username} {token_msg}", parse_mode=enums.ParseMode.HTML)
-          await auto_delete_message(message, reply)
-     else:
-        mongo_collection.update_one(
-                {'user_id': user_id},
-                {'$set': {'user_id': user_id}}, 
-                upsert=True
-            )
-        reply = await message.reply_text(f"<b>💐Welcome this is TG⚡️Flix Bot")
-        await auto_delete_message(message, reply)
-
-
-# Get Command      
-@app.on_message(filters.private & filters.command("get"))
-async def handle_get_command(client, message):
+async def get_command(client, message):
     user_id = message.from_user.id
-    
-    if not await check_access(message, user_id):
-         return
-    
+    user_link = await get_user_link(message.from_user)
+
+    if len(message.command) > 1 and message.command[1] == "token":
+        try:
+            await message.delete()
+            file_id = 4
+            get_msg = await app.get_messages(DB_CHANNEL_ID, int(file_id))
+            await app.send_video(user_id, get_msg.video.file_id, ttl_seconds=300)
+        except Exception as e:
+            logger.error(f"{e}")
+        return
+
+    if len(message.command) > 1 and len(message.command[1]) == 36:
+        input_token = message.command[1] if len(message.command) > 1 else None
+        token_msg = await verify_token(user_id, input_token)
+        reply = await message.reply_text(token_msg)
+        await app.send_message(LOG_CHANNEL_ID, f"User🕵️‍♂️{user_link} with 🆔 {user_id} @{bot_username} {token_msg}", parse_mode=enums.ParseMode.HTML)
+        await auto_delete_message(message, reply)
+        return
+
     file_id = message.command[1] if len(message.command) > 1 else None
 
     if file_id:
+        if not await check_access(message, user_id):
+            return
         try:
             file_message = await app.get_messages(DB_CHANNEL_ID, int(file_id))
             media = file_message.video or file_message.audio or file_message.document
@@ -159,17 +85,15 @@ async def handle_get_command(client, message):
                 else:
                     copy_message = await file_message.copy(chat_id=message.chat.id)
                     user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
-
                 await auto_delete_message(message, copy_message)
                 await asyncio.sleep(3)
-
             else:
-                 reply = await message.reply_text("File not found or inaccessible.")
-                 await auto_delete_message(message, reply)
+                reply = await message.reply_text("File not found or inaccessible.")
+                await auto_delete_message(message, reply)
 
         except ValueError:
-                reply = await message.reply_text("Invalid File ID") 
-                await auto_delete_message(message, reply)  
+            reply = await message.reply_text("Invalid File ID") 
+            await auto_delete_message(message, reply)  
 
         except FloodWait as f:
             await asyncio.sleep(f.value)
@@ -183,9 +107,287 @@ async def handle_get_command(client, message):
             await auto_delete_message(message, copy_message)
             await asyncio.sleep(3)
     else:
-        reply = await message.reply_text("Provide a File Id")
-        await auto_delete_message(message, reply)  
-       
+        mongo_collection.update_one(
+                {'user_id': user_id},
+                {'$set': {'user_id': user_id}}, 
+                upsert=True
+            )
+        reply = await message.reply_text(f"<b>💐Welcome this is TG⚡️Flix Bot")
+        await auto_delete_message(message, reply)
+
+@app.on_message(filters.private & (filters.document | filters.video) & filters.user(OWNER_USERNAME))
+async def forward_message_to_new_channel(client, message):
+    media = message.document or message.video
+    
+    if media:
+        caption = message.caption if message.caption else None
+        file_size = media.file_size if media.file_size else None
+
+        if caption:
+            new_caption = await remove_unwanted(caption)
+            movie_name, release_year = await extract_movie_info(new_caption)
+            movie_details = await get_movie_poster(movie_name, release_year)
+            quality = await get_quality(new_caption)
+            season, episode = await extract_season_episode(new_caption)
+
+            try:
+                cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
+                await message.delete()
+                if movie_details:
+                    # Extract details from movie_details
+                    poster_url = movie_details.get('poster_url')
+                    title = movie_details.get('title', new_caption)
+                    spoken_languages = ', '.join(movie_details.get('spoken_languages', []))
+                    genres = movie_details.get('genres', [])
+                    collection_name = movie_details.get('collection_name')
+                    runtime = movie_details.get('runtime')
+                    release_date = movie_details.get('release_date')
+                    tagline = movie_details.get('tagline')
+                    rating = movie_details.get('vote_average')
+
+                    # Start building the caption, only include fields if they are available
+                    file_info = f"🎬 {title}\n"
+
+                    if release_date:
+                        file_info += f"🗓 Release Date: {release_date}\n"
+                    if rating:
+                        file_info += f"⭐ Rating: {rating} / 10\n"
+                    if season:
+                        file_info += f"📺 Season: {season}\n"
+                    if episode:
+                        file_info += f"▶️ Episode: {episode}\n"
+                    if runtime:
+                        file_info += f"⏱ Runtime: {runtime} min\n"
+                    if spoken_languages:
+                        file_info += f"🗣 Languages: {spoken_languages}\n"
+                    if collection_name:
+                        file_info += f"📂 Collection: {collection_name}\n"
+                    if genres:
+                        file_info += f"🎭 Genres: {genres}\n"
+                    if quality:
+                         file_info += f"🎥 Quality: {quality}\n"
+                    if file_size:
+                         file_info += f"📦 Size: {humanbytes(file_size)}\n"
+                    if tagline:
+                        file_info += f"\n{tagline}\n"
+
+                    # Always include the file ID
+                    file_link = f'https://telegram.me/{bot_username}?start={cpy_msg.id}'
+                    button = InlineKeyboardMarkup([[InlineKeyboardButton("📥 Get File", url=file_link)]])
+
+                    # Send the message with the TMDb poster
+                    await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=f"<b>{file_info}</b>", reply_markup=button)
+
+                else:
+                    # If no movie details, fallback to default poster and caption
+                    await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
+
+                await asyncio.sleep(3)
+
+            except Exception as e:
+                logger.error(f'{e}')
+                # Fallback in case of any error
+                await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
+                await asyncio.sleep(3)
+
+@app.on_message(filters.private & filters.command("send") & filters.user(OWNER_USERNAME))
+async def send_msg(client, message):
+    try:
+        await message.delete()
+
+        rply1 = await message.reply_text("start post link")
+        link1 = await app.listen(message.chat.id)
+        start_link = link1.text
+        
+        await rply1.delete()
+
+        rply2 = await message.reply_text("end post link")
+        link2 = await app.listen(message.chat.id)
+        end_link = link2.text
+
+        await rply2.delete()
+
+
+        start_msg_id = await extract_tg_link(start_link)
+        await link1.delete()
+        await asyncio.sleep(3)
+        end_msg_id = await extract_tg_link(end_link)
+        await link2.delete()
+
+
+        file_messages = await app.get_messages(DB_CHANNEL_ID, range(int(start_msg_id), int(end_msg_id) + 1))
+        for file_message in file_messages:
+
+            media = file_message.document or file_message.video
+        
+            if media:
+                caption = file_message.caption if file_message.caption else None
+                file_size = media.file_size if media.file_size else None
+
+                if caption:
+                    new_caption = await remove_unwanted(caption)
+                    movie_name, release_year = await extract_movie_info(new_caption)
+                    movie_details = await get_movie_poster(movie_name, release_year)
+                    quality = await get_quality(new_caption)
+                    season, episode = await extract_season_episode(new_caption)
+
+                    try:
+                        if movie_details:
+                            # Extract details from movie_details
+                            poster_url = movie_details.get('poster_url')
+                            title = movie_details.get('title', new_caption)
+                            spoken_languages = ', '.join(movie_details.get('spoken_languages', []))
+                            genres = movie_details.get('genres', [])
+                            collection_name = movie_details.get('collection_name')
+                            runtime = movie_details.get('runtime')
+                            release_date = movie_details.get('release_date')
+                            tagline = movie_details.get('tagline')
+                            rating = movie_details.get('vote_average')
+
+                            # Start building the caption, only include fields if they are available
+                            file_info = f"🎬 {title}\n"
+
+                            if release_date:
+                                file_info += f"🗓 Release Date: {release_date}\n"
+                            if rating:
+                                file_info += f"⭐ Rating: {rating} / 10\n"
+                            if season:
+                                file_info += f"📺 Season: {season}\n"
+                            if episode:
+                                file_info += f"▶️ Episode: {episode}\n"
+                            if runtime:
+                                file_info += f"⏱ Runtime: {runtime} min\n"
+                            if spoken_languages:
+                                file_info += f"🗣 Languages: {spoken_languages}\n"
+                            if collection_name:
+                                file_info += f"📂 Collection: {collection_name}\n"
+                            if genres:
+                                file_info += f"🎭 Genres: {genres}\n"
+                            if quality:
+                                file_info += f"🎥 Quality: {quality}\n"
+                            if file_size:
+                                file_info += f"📦 Size: {humanbytes(file_size)}\n"
+                            if tagline:
+                                file_info += f"\n{tagline}\n"
+
+                            # Always include the file ID
+                            file_link = f'https://telegram.me/{bot_username}?start={file_message.id}'
+                            button = InlineKeyboardMarkup([[InlineKeyboardButton("📥 Get File", url=file_link)]])
+
+                            # Send the message with the TMDb poster
+                            await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=f"<b>{file_info}</b>", reply_markup=button)
+
+                        else:
+                            # If no movie details, fallback to default poster and caption
+                            await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
+
+                        await asyncio.sleep(3)
+
+                    except Exception as e:
+                        logger.error(f'{e}')
+                        # Fallback in case of any error
+                        await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
+                        await asyncio.sleep(3)
+        await message.reply_text("Messages send successfully ✅")
+
+    except Exception as e:
+        logger.error(f"Error in send commmand {e}")
+
+@app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
+async def forward_message_to_new_channel(client, message):
+    try:
+        await message.delete()
+
+        rply1 = await message.reply_text("send post link")
+        post_msg = await app.listen(message.chat.id)
+        tg_link = post_msg.text
+        await rply1.delete()
+
+        rply2 = await message.reply_text("send tmdb link")
+        link = await app.listen(message.chat.id)
+        tmdb_link = link.text
+        await rply1.delete()
+
+        type, id = await extract_tmdb_link(tmdb_link)
+        await link.delete()
+        await asyncio.sleep(3)
+        msg_id = int(await extract_tg_link(tg_link))
+        await post_msg.delete()
+
+        file_message = await app.get_messages(DB_CHANNEL_ID, int(msg_id))
+        media = file_message.document or file_message.video
+
+        if media:
+            caption = file_message.caption if file_message.caption else None
+            file_size = media.file_size if media.file_size else None
+
+            if caption:
+                new_caption = await remove_unwanted(caption)
+                movie_details = await get_movie_poster_by_id(type, id)
+                quality = await get_quality(new_caption)
+                season, episode = await extract_season_episode(new_caption)
+
+                try:
+                    if movie_details:
+                        # Extract details from movie_details
+                        poster_url = movie_details.get('poster_url')
+                        title = movie_details.get('title', new_caption)
+                        spoken_languages = ', '.join(movie_details.get('spoken_languages', []))
+                        genres = movie_details.get('genres', [])
+                        collection_name = movie_details.get('collection_name')
+                        runtime = movie_details.get('runtime')
+                        release_date = movie_details.get('release_date')
+                        tagline = movie_details.get('tagline')
+                        rating = movie_details.get('vote_average')
+
+                        # Start building the caption, only include fields if they are available
+                        file_info = f"🎬 {title}\n"
+
+                        if release_date:
+                            file_info += f"🗓 Release Date: {release_date}\n"
+                        if rating:
+                            file_info += f"⭐ Rating: {rating} / 10\n"
+                        if season:
+                            file_info += f"📺 Season: {season}\n"
+                        if episode:
+                            file_info += f"▶️ Episode: {episode}\n"
+                        if runtime:
+                            file_info += f"⏱ Runtime: {runtime} min\n"
+                        if spoken_languages:
+                            file_info += f"🗣 Languages: {spoken_languages}\n"
+                        if collection_name:
+                            file_info += f"📂 Collection: {collection_name}\n"
+                        if genres:
+                            file_info += f"🎭 Genres: {genres}\n"
+                        if quality:
+                            file_info += f"🎥 Quality: {quality}\n"
+                        if file_size:
+                            file_info += f"📦 Size: {humanbytes(file_size)}\n"
+                        if tagline:
+                            file_info += f"\n{tagline}\n"
+
+                        # Always include the file ID
+                        file_link = f'https://telegram.me/{bot_username}?start={file_message.id}'
+                        button = InlineKeyboardMarkup([[InlineKeyboardButton("📥 Get File", url=file_link)]])
+
+                        # Send the message with the TMDb poster
+                        await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=f"<b>{file_info}</b>", reply_markup=button)
+
+                    else:
+                        # If no movie details, fallback to default poster and caption
+                        await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
+
+                    await asyncio.sleep(3)
+
+                except Exception as e:
+                    logger.error(f'{e}')
+                    # Fallback in case of any error
+                    await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
+                    await asyncio.sleep(3)
+
+    except Exception as e:
+        logger.error(f"{e}")
+
 # Delete Commmand
 @app.on_message(filters.command("delete") & filters.user(OWNER_USERNAME))
 async def delete_command(client, message):
@@ -228,20 +430,7 @@ async def total_users_command(client, message):
     response_text = f"Total number of users in the database: {total_users}"
     reply = await app.send_message(user_id, response_text)
     await auto_delete_message(message, reply)
-    
-# Help Command
-@app.on_message(filters.private & filters.command("help"))
-async def handle_help_command(client, message):
-    try:
-        file_id = 3
-        get_msg = await app.get_messages(DB_CHANNEL_ID, int(file_id))
-        send_msg = await get_msg.copy(chat_id=message.chat.id)
-        await message.delete()
-        await asyncio.sleep(300)
-        await send_msg.delete()
-    except Exception as e:
-        logger.error(f"{e}")
-        
+            
 async def verify_token(user_id, input_token):
     current_time = tm()
 
@@ -291,7 +480,10 @@ async def update_token(user_id):
         current_time = tm()
         user_data[user_id] = {"token": token, "time": current_time, "status": "unverified", "file_count": 0}
         urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start={token}')
-        button = InlineKeyboardMarkup([[InlineKeyboardButton("Collect Token", url=urlshortx)]])
+        token_url = f'https://telegram.me/{bot_username}?start=token'
+        button1 = InlineKeyboardButton("Collect Token", url=urlshortx)
+        button2 = InlineKeyboardButton("How to Bypass Token", url=token_url)
+        button = InlineKeyboardMarkup([[button1, button2]])
         return button
     except Exception as e:
         logger.error(f"error in update_token: {e}")
@@ -302,7 +494,10 @@ async def genrate_token(user_id):
         current_time = tm()
         user_data[user_id] = {"token": token, "time": current_time, "status": "unverified", "file_count": 0}
         urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start={token}')
-        button = InlineKeyboardMarkup([[InlineKeyboardButton("Collect Token", url=urlshortx)]])
+        token_url = f'https://telegram.me/{bot_username}?start=token'
+        button1 = InlineKeyboardButton("Collect Token", url=urlshortx)
+        button2 = InlineKeyboardButton("How to Bypass Token", url=token_url)
+        button = InlineKeyboardMarkup([[button1, button2]])
         return button
     except Exception as e:
         logger.error(f"error in genrate_token: {e}")
