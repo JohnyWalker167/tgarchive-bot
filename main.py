@@ -52,10 +52,11 @@ async def get_command(client, message):
 
     if len(message.command) > 1 and message.command[1] == "token":
         try:
-            await message.delete()
-            file_id = 4
+            file_id = 158
             get_msg = await app.get_messages(DB_CHANNEL_ID, int(file_id))
-            await app.send_video(user_id, get_msg.video.file_id, ttl_seconds=300)
+            cpy_msg = await get_msg.copy(chat_id=message.chat.id)
+            await auto_delete_message(message, copy_message)
+            
         except Exception as e:
             logger.error(f"{e}")
         return
