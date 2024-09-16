@@ -300,7 +300,7 @@ async def forward_message_to_new_channel(client, message):
         msg_id = int(await extract_tg_link(await get_user_input("Send post link")))
         type, id= int(await extract_tmdb_link(await get_user_input("Send tmdb link")))
 
-        file_message = await app.get_messages(DB_CHANNEL_ID, int(msg_id))
+        file_message = await app.get_messages(DB_CHANNEL_ID, msg_id)
         media = file_message.document or file_message.video
 
         if media:
