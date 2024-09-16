@@ -403,7 +403,7 @@ async def copy_msg(client, message):
                     await file_message.copy(destination_id, caption=caption)
                     await asyncio.sleep(3)
                     
-        await message.reply_text("Messages copied successfully!")
+        await message.reply_text("Messages copied successfully!✅")
         
     except FloodWait as e:
         await asyncio.sleep(e.value)
