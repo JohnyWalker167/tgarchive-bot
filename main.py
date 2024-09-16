@@ -394,9 +394,10 @@ async def copy_msg(client, message):
     try:
         async def get_user_input(prompt):
             rply = await message.reply_text(prompt)
-            await rply.delete()
             link_msg = await app.listen(message.chat.id)
             await link_msg.delete()
+            await asyncio.sleep(3)
+            await rply.delete()
             return link_msg.text
         
         # Collect input from the user
