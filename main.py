@@ -127,25 +127,14 @@ async def forward_message_to_new_channel(client, message):
         if caption:
             new_caption = await remove_unwanted(caption)
             movie_name, release_year = await extract_movie_info(new_caption)
-            movie_details = await get_movie_poster(movie_name, release_year)
+            poster_url, title, release_date, rating, genres, collection_name, runtime, spoken_languages, tagline = await get_movie_poster(movie_name, release_year)
             quality = await get_quality(new_caption)
             season, episode = await extract_season_episode(new_caption)
 
             try:
                 cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
                 await message.delete()
-                if movie_details:
-                    # Extract details from movie_details
-                    poster_url = movie_details.get('poster_url')
-                    title = movie_details.get('title', new_caption)
-                    spoken_languages = ', '.join(movie_details.get('spoken_languages', []))
-                    genres = movie_details.get('genres', [])
-                    collection_name = movie_details.get('collection_name')
-                    runtime = movie_details.get('runtime')
-                    release_date = movie_details.get('release_date')
-                    tagline = movie_details.get('tagline')
-                    rating = movie_details.get('vote_average')
-
+                if title:
                     # Start building the caption, only include fields if they are available
                     file_info = f"🎬 {title}\n"
 
@@ -194,11 +183,11 @@ async def forward_message_to_new_channel(client, message):
 @app.on_message(filters.private & filters.command("send") & filters.user(OWNER_USERNAME))
 async def send_msg(client, message):
     try:
+        await message.delete()
         async def get_user_input(prompt):
             rply = await message.reply_text(prompt)
             link_msg = await app.listen(message.chat.id)
             await link_msg.delete()
-            await asyncio.sleep(3)
             await rply.delete()
             return link_msg.text
             
@@ -219,23 +208,12 @@ async def send_msg(client, message):
                     if caption:
                         new_caption = await remove_unwanted(caption)
                         movie_name, release_year = await extract_movie_info(new_caption)
-                        movie_details = await get_movie_poster(movie_name, release_year)
+                        poster_url, title, release_date, rating, genres, collection_name, runtime, spoken_languages, tagline = await get_movie_poster(movie_name, release_year)
                         quality = await get_quality(new_caption)
                         season, episode = await extract_season_episode(new_caption)
 
                         try:
-                            if movie_details:
-                                # Extract details from movie_details
-                                poster_url = movie_details.get('poster_url')
-                                title = movie_details.get('title', new_caption)
-                                spoken_languages = ', '.join(movie_details.get('spoken_languages', []))
-                                genres = movie_details.get('genres', [])
-                                collection_name = movie_details.get('collection_name')
-                                runtime = movie_details.get('runtime')
-                                release_date = movie_details.get('release_date')
-                                tagline = movie_details.get('tagline')
-                                rating = movie_details.get('vote_average')
-
+                            if title:
                                 # Start building the caption, only include fields if they are available
                                 file_info = f"🎬 {title}\n"
 
@@ -289,11 +267,11 @@ async def send_msg(client, message):
 @app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
 async def forward_message_to_new_channel(client, message):
     try:
+        await message.delete()
         async def get_user_input(prompt):
             rply = await message.reply_text(prompt)
             link_msg = await app.listen(message.chat.id)
             await link_msg.delete()
-            await asyncio.sleep(3)
             await rply.delete()
             return link_msg.text
 
@@ -309,23 +287,12 @@ async def forward_message_to_new_channel(client, message):
 
             if caption:
                 new_caption = await remove_unwanted(caption)
-                movie_details = await get_movie_poster_by_id(type, id)
+                poster_url, title, release_date, rating, genres, collection_name, runtime, spoken_languages, tagline = await get_movie_poster(movie_name, release_year)
                 quality = await get_quality(new_caption)
                 season, episode = await extract_season_episode(new_caption)
 
                 try:
-                    if movie_details:
-                        # Extract details from movie_details
-                        poster_url = movie_details.get('poster_url')
-                        title = movie_details.get('title', new_caption)
-                        spoken_languages = ', '.join(movie_details.get('spoken_languages', []))
-                        genres = movie_details.get('genres', [])
-                        collection_name = movie_details.get('collection_name')
-                        runtime = movie_details.get('runtime')
-                        release_date = movie_details.get('release_date')
-                        tagline = movie_details.get('tagline')
-                        rating = movie_details.get('vote_average')
-
+                    if title:
                         # Start building the caption, only include fields if they are available
                         file_info = f"🎬 {title}\n"
 
