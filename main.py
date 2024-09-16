@@ -377,6 +377,7 @@ async def forward_message_to_new_channel(client, message):
 @app.on_message(filters.command("copy") & filters.user(OWNER_USERNAME))
 async def copy_msg(client, message):    
     try:
+        await message.delete()
         async def get_user_input(prompt):
             rply = await message.reply_text(prompt)
             link_msg = await app.listen(message.chat.id)
