@@ -287,7 +287,7 @@ async def forward_message_to_new_channel(client, message):
 
             if caption:
                 new_caption = await remove_unwanted(caption)
-                poster_url, title, release_date, rating, genres, collection_name, runtime, spoken_languages, tagline = await get_movie_poster(movie_name, release_year)
+                poster_url, title, release_date, rating, genres, collection_name, runtime, spoken_languages, tagline = await get_movie_poster_by_id(type, id)
                 quality = await get_quality(new_caption)
                 season, episode = await extract_season_episode(new_caption)
 
