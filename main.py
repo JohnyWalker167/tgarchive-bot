@@ -194,102 +194,93 @@ async def forward_message_to_new_channel(client, message):
 @app.on_message(filters.private & filters.command("send") & filters.user(OWNER_USERNAME))
 async def send_msg(client, message):
     try:
-        await message.delete()
+        async def get_user_input(prompt):
+            rply = await message.reply_text(prompt)
+            link_msg = await app.listen(message.chat.id)
+            await link_msg.delete()
+            await asyncio.sleep(3)
+            await rply.delete()
+            return link_msg.text
+            
+        start_msg_id = int(await extract_tg_link(await get_user_input("Send first post link")))
+        end_msg_id = int(await extract_tg_link(await get_user_input("Send end post link")))
 
-        rply1 = await message.reply_text("start post link")
-        link1 = await app.listen(message.chat.id)
-        start_link = link1.text
-        
-        await rply1.delete()
+        batch_size = 199
+        for start in range(start_msg_id, end_msg_id + 1, batch_size):
+            end = min(start + batch_size - 1, end_msg_id)  # Ensure we don't go beyond end_msg_id
+            file_messages = await app.get_messages(DB_CHANNEL_ID, range(start, end + 1))
+            
+            for file_message in file_messages:
+                media = file_message.document or file_message.video
+                if media:
+                    caption = file_message.caption if file_message.caption else None
+                    file_size = media.file_size if media.file_size else None
 
-        rply2 = await message.reply_text("end post link")
-        link2 = await app.listen(message.chat.id)
-        end_link = link2.text
+                    if caption:
+                        new_caption = await remove_unwanted(caption)
+                        movie_name, release_year = await extract_movie_info(new_caption)
+                        movie_details = await get_movie_poster(movie_name, release_year)
+                        quality = await get_quality(new_caption)
+                        season, episode = await extract_season_episode(new_caption)
 
-        await rply2.delete()
+                        try:
+                            if movie_details:
+                                # Extract details from movie_details
+                                poster_url = movie_details.get('poster_url')
+                                title = movie_details.get('title', new_caption)
+                                spoken_languages = ', '.join(movie_details.get('spoken_languages', []))
+                                genres = movie_details.get('genres', [])
+                                collection_name = movie_details.get('collection_name')
+                                runtime = movie_details.get('runtime')
+                                release_date = movie_details.get('release_date')
+                                tagline = movie_details.get('tagline')
+                                rating = movie_details.get('vote_average')
 
+                                # Start building the caption, only include fields if they are available
+                                file_info = f"🎬 {title}\n"
 
-        start_msg_id = await extract_tg_link(start_link)
-        await link1.delete()
-        await asyncio.sleep(3)
-        end_msg_id = await extract_tg_link(end_link)
-        await link2.delete()
+                                if release_date:
+                                    file_info += f"🗓 Release Date: {release_date}\n"
+                                if rating:
+                                    file_info += f"⭐ Rating: {rating} / 10\n"
+                                if season:
+                                    file_info += f"📺 Season: {season}\n"
+                                if episode:
+                                    file_info += f"▶️ Episode: {episode}\n"
+                                if runtime:
+                                    file_info += f"⏱ Runtime: {runtime} min\n"
+                                if spoken_languages:
+                                    file_info += f"🗣 Languages: {spoken_languages}\n"
+                                if collection_name:
+                                    file_info += f"📂 Collection: {collection_name}\n"
+                                if genres:
+                                    file_info += f"🎭 Genres: {genres}\n"
+                                if quality:
+                                    file_info += f"🎥 Quality: {quality}\n"
+                                if file_size:
+                                    file_info += f"📦 Size: {humanbytes(file_size)}\n"
+                                if tagline:
+                                    file_info += f"\n{tagline}\n"
 
+                                # Always include the file ID
+                                file_link = f'https://telegram.me/{bot_username}?start={file_message.id}'
+                                button = InlineKeyboardMarkup([[InlineKeyboardButton("📥 Get File", url=file_link)]])
 
-        file_messages = await app.get_messages(DB_CHANNEL_ID, range(int(start_msg_id), int(end_msg_id) + 1))
-        for file_message in file_messages:
+                                # Send the message with the TMDb poster
+                                await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=f"<b>{file_info}</b>", reply_markup=button)
 
-            media = file_message.document or file_message.video
-        
-            if media:
-                caption = file_message.caption if file_message.caption else None
-                file_size = media.file_size if media.file_size else None
+                            else:
+                                # If no movie details, fallback to default poster and caption
+                                await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
 
-                if caption:
-                    new_caption = await remove_unwanted(caption)
-                    movie_name, release_year = await extract_movie_info(new_caption)
-                    movie_details = await get_movie_poster(movie_name, release_year)
-                    quality = await get_quality(new_caption)
-                    season, episode = await extract_season_episode(new_caption)
+                            await asyncio.sleep(3)
 
-                    try:
-                        if movie_details:
-                            # Extract details from movie_details
-                            poster_url = movie_details.get('poster_url')
-                            title = movie_details.get('title', new_caption)
-                            spoken_languages = ', '.join(movie_details.get('spoken_languages', []))
-                            genres = movie_details.get('genres', [])
-                            collection_name = movie_details.get('collection_name')
-                            runtime = movie_details.get('runtime')
-                            release_date = movie_details.get('release_date')
-                            tagline = movie_details.get('tagline')
-                            rating = movie_details.get('vote_average')
-
-                            # Start building the caption, only include fields if they are available
-                            file_info = f"🎬 {title}\n"
-
-                            if release_date:
-                                file_info += f"🗓 Release Date: {release_date}\n"
-                            if rating:
-                                file_info += f"⭐ Rating: {rating} / 10\n"
-                            if season:
-                                file_info += f"📺 Season: {season}\n"
-                            if episode:
-                                file_info += f"▶️ Episode: {episode}\n"
-                            if runtime:
-                                file_info += f"⏱ Runtime: {runtime} min\n"
-                            if spoken_languages:
-                                file_info += f"🗣 Languages: {spoken_languages}\n"
-                            if collection_name:
-                                file_info += f"📂 Collection: {collection_name}\n"
-                            if genres:
-                                file_info += f"🎭 Genres: {genres}\n"
-                            if quality:
-                                file_info += f"🎥 Quality: {quality}\n"
-                            if file_size:
-                                file_info += f"📦 Size: {humanbytes(file_size)}\n"
-                            if tagline:
-                                file_info += f"\n{tagline}\n"
-
-                            # Always include the file ID
-                            file_link = f'https://telegram.me/{bot_username}?start={file_message.id}'
-                            button = InlineKeyboardMarkup([[InlineKeyboardButton("📥 Get File", url=file_link)]])
-
-                            # Send the message with the TMDb poster
-                            await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=f"<b>{file_info}</b>", reply_markup=button)
-
-                        else:
-                            # If no movie details, fallback to default poster and caption
+                        except Exception as e:
+                            logger.error(f'{e}')
+                            # Fallback in case of any error
                             await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
-
-                        await asyncio.sleep(3)
-
-                    except Exception as e:
-                        logger.error(f'{e}')
-                        # Fallback in case of any error
-                        await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
-                        await asyncio.sleep(3)
-        await message.reply_text("Messages send successfully ✅")
+                            await asyncio.sleep(3)
+            await message.reply_text("Messages send successfully ✅")
 
     except Exception as e:
         logger.error(f"Error in send commmand {e}")
