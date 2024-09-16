@@ -280,7 +280,8 @@ async def send_msg(client, message):
                             # Fallback in case of any error
                             await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
                             await asyncio.sleep(3)
-            await message.reply_text("Messages send successfully ✅")
+
+        await message.reply_text("Messages send successfully ✅")
 
     except Exception as e:
         logger.error(f"Error in send commmand {e}")
@@ -288,23 +289,16 @@ async def send_msg(client, message):
 @app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
 async def forward_message_to_new_channel(client, message):
     try:
-        await message.delete()
+        async def get_user_input(prompt):
+            rply = await message.reply_text(prompt)
+            link_msg = await app.listen(message.chat.id)
+            await link_msg.delete()
+            await asyncio.sleep(3)
+            await rply.delete()
+            return link_msg.text
 
-        rply1 = await message.reply_text("send post link")
-        post_msg = await app.listen(message.chat.id)
-        tg_link = post_msg.text
-        await rply1.delete()
-
-        rply2 = await message.reply_text("send tmdb link")
-        link = await app.listen(message.chat.id)
-        tmdb_link = link.text
-        await rply1.delete()
-
-        type, id = await extract_tmdb_link(tmdb_link)
-        await link.delete()
-        await asyncio.sleep(3)
-        msg_id = int(await extract_tg_link(tg_link))
-        await post_msg.delete()
+        msg_id = int(await extract_tg_link(await get_user_input("Send post link")))
+        type, id= int(await extract_tmdb_link(await get_user_input("Send tmdb link")))
 
         file_message = await app.get_messages(DB_CHANNEL_ID, int(msg_id))
         media = file_message.document or file_message.video
@@ -397,15 +391,18 @@ async def copy_msg(client, message):
         db_channel_id = int(await extract_channel_id(await get_user_input("Send db_channel link")))
         destination_id = int(await extract_channel_id(await get_user_input("Send destination channel link")))
 
-        # Get and copy messages
-        file_messages = await app.get_messages(db_channel_id, range(start_msg_id, end_msg_id + 1))
+        batch_size = 199
+        for start in range(start_msg_id, end_msg_id + 1, batch_size):
+            end = min(start + batch_size - 1, end_msg_id)  # Ensure we don't go beyond end_msg_id
+            # Get and copy messages
+            file_messages = await app.get_messages(DB_CHANNEL_ID, range(start, end + 1))
 
-        for file_message in file_messages:
-            if file_message and (file_message.document or file_message.video or file_message.audio or file_message.photo):
-                caption = file_message.caption.html if file_message.caption else None
-                await file_message.copy(destination_id, caption=caption)
-                await asyncio.sleep(3)
-                
+            for file_message in file_messages:
+                if file_message and (file_message.document or file_message.video or file_message.audio or file_message.photo):
+                    caption = file_message.caption.html if file_message.caption else None
+                    await file_message.copy(destination_id, caption=caption)
+                    await asyncio.sleep(3)
+                    
         await message.reply_text("Messages copied successfully!")
         
     except FloodWait as e:
