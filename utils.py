@@ -160,8 +160,9 @@ async def get_movie_poster(movie_name, release_year):
                         title = details_data.get('title') or details_data.get('name')
                         spoken_languages = [lang['english_name'] for lang in details_data.get('spoken_languages', [])] if details_data.get('spoken_languages') else []
                         genres = ' '.join([f"#{genre['name'].replace(' ', '')}" for genre in details_data.get('genres', [])]).strip() if details_data.get('genres') else None
+                        genres = genres.translate(translator)
                         collection_name = f"#{details_data.get('belongs_to_collection', {}).get('name', '').replace(' ', '')}".strip() if details_data.get('belongs_to_collection') else None
-                        translator = str.maketrans('', '', string.punctuation.replace('#', ''))
+                        collection_name = collection_name.translate(translator) 
                         runtime = details_data.get('runtime') or (details_data.get('episode_run_time', [None])[0] if details_data.get('episode_run_time') else None)
                         release_date = details_data.get('release_date') or details_data.get('first_air_date')
                         tagline = details_data.get('tagline')
