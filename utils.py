@@ -1,4 +1,5 @@
 import re
+from sys import intern
 import requests
 import string
 import aiohttp
@@ -117,12 +118,13 @@ async def get_movie_poster(movie_name, release_year):
             async with session.get(tmdb_search_url) as search_response:
                 search_data = await search_response.json()
 
-                if search_data.get('results', []):
+                if search_data['results']:
                     # Filter results based on release year and first air date
                     matching_results = [
                         result for result in search_data['results']
                         if ('release_date' in result and result['release_date'][:4] == str(release_year)) or
-                        ('first_air_date' in result and result['first_air_date'][:4] == str(release_year))
+                        ('first_air_date' in result and result['first_air_date'][:4] == str(
+                            release_year))
                     ]
 
                     if matching_results:
@@ -132,61 +134,46 @@ async def get_movie_poster(movie_name, release_year):
                         movie_id = result['id']
                         media_type = result['media_type']
 
-                        # Details URL for additional movie/TV show information
-                        tmdb_movie_details_url = f'https://api.themoviedb.org/3/{media_type}/{movie_id}?api_key={TMDB_API_KEY}&language=en-US'
+                        tmdb_movie_url = f'https://api.themoviedb.org/3/{media_type}/{movie_id}?api_key={TMDB_API_KEY}&language=en-US'
 
-                        async with session.get(tmdb_movie_details_url) as details_response:
-                            details_data = await details_response.json()
-
-                        # Fetch additional image details (poster/backdrop)
                         tmdb_movie_image_url = f'https://api.themoviedb.org/3/{media_type}/{movie_id}/images?api_key={TMDB_API_KEY}&language=en-US&include_image_language=en,hi'
 
                         async with session.get(tmdb_movie_image_url) as movie_response:
                             movie_images = await movie_response.json()
 
-                        # Get the poster or backdrop path (check if list is not empty)
-                        poster_path = None
-                        if movie_images.get('backdrops'):
-                            poster_path = movie_images['backdrops'][0].get('file_path')
-                        elif result.get('backdrop_path'):
-                            poster_path = result['backdrop_path']
-                        elif result.get('poster_path'):
-                            poster_path = result['poster_path']
+                        async with session.get(tmdb_movie_url) as movie_response:
+                            movie_data = await movie_response.json()
+ 
+                        # Use the backdrop_path or poster_path
+                            poster_path = None
+                            if 'backdrops' in movie_images and movie_images['backdrops']:
+                                poster_path = movie_images['backdrops'][0]['file_path']
+                                                        
+                            elif 'backdrop_path' in result and result['backdrop_path']:
+                                poster_path = result['backdrop_path']
 
-                        # Ensure poster path is not None
-                        poster_url = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else None
+                            elif 'poster_path' in result and result['poster_path']:
+                                poster_path = result['poster_path']
 
-                        # Extract additional details with robust checks
-                        title = details_data.get('title') or details_data.get('name')
-                        spoken_languages = [lang['english_name'] for lang in details_data.get('spoken_languages', [])] if details_data.get('spoken_languages') else None
-                        genres = ' '.join([f"#{genre['name'].replace(' ', '')}" for genre in details_data.get('genres', [])]).strip() if details_data.get('genres') else None
-                        if genres:
+                            poster_url = f"https://image.tmdb.org/t/p/original{poster_path}"
+
+                            title = movie_data.get('title') or movie_data.get('name')
+                            release_date = movie_data.get('release_date')
+                            rating = int(movie_data.get('vote_average'))
+                            genres = ' '.join([f"#{genre['name'].replace(' ', '')}" for genre in movie_data.get('genres', [])])
                             genres = genres.translate(translator)
-                        collection_name = f"#{details_data.get('belongs_to_collection', {}).get('name', '').replace(' ', '')}".strip() if details_data.get('belongs_to_collection') else None
-                        if collection_name:
-                            collection_name = collection_name.translate(translator) 
-                        runtime = details_data.get('runtime') or (details_data.get('episode_run_time', [None])[0] if details_data.get('episode_run_time') else None)
-                        release_date = details_data.get('release_date') or details_data.get('first_air_date')
-                        tagline = details_data.get('tagline')
-                        vote_average = int(details_data.get('vote_average'))
-
-
-                        # Return all the details, ensuring empty fields are handled
-                        return {
-                            'poster_url': poster_url,
-                            'title': title,
-                            'spoken_languages': spoken_languages if spoken_languages else None,
-                            'genres': genres if genres else None,
-                            'collection_name': collection_name,
-                            'runtime': runtime,
-                            'release_date': release_date,
-                            'tagline': tagline,
-                            'vote_average': vote_average
-                        }
-
+                            collection = movie_data.get('belongs_to_collection')
+                            collection_name = f"#{collection['name'].replace(' ', '')}" if collection else ""
+                            collection_name = collection_name.translate(translator)
+                            runtime = movie_data.get('runtime', None)  
+                            spoken_languages = ', '.join([lang['name'] for lang in movie_data.get('spoken_languages', [])])
+                            tagline = movie_data.get('tagline', None)  
+                                   
+                            return poster_url, title, release_date, rating, genres, collection_name, runtime, spoken_languages, tagline
     except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+        logger.error(f"Error fetching TMDB data: {e}")
+
+    return None, None, None, None, None, None, None, None, None
 
 async def get_movie_poster_by_id(media_type, movie_id):
     try:
@@ -216,35 +203,24 @@ async def get_movie_poster_by_id(media_type, movie_id):
                     poster_url = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else None
 
                     # Extract additional details with robust checks
-                    title = details_data.get('title') or details_data.get('name')
-                    spoken_languages = [lang['english_name'] for lang in details_data.get('spoken_languages', [])] if details_data.get('spoken_languages') else None
-                    genres = ' '.join([f"#{genre['name'].replace(' ', '')}" for genre in details_data.get('genres', [])]).strip() if details_data.get('genres') else None
-                    if genres:
-                        genres = genres.translate(translator)                    
-                    collection_name = f"#{details_data.get('belongs_to_collection', {}).get('name', '').replace(' ', '')}".strip() if details_data.get('belongs_to_collection') else None
-                    if collection_name:
-                        collection_name = collection_name.translate(translator) 
-                    runtime = details_data.get('runtime') or (details_data.get('episode_run_time', [None])[0] if details_data.get('episode_run_time') else None)
-                    release_date = details_data.get('release_date') or details_data.get('first_air_date')
-                    tagline = details_data.get('tagline')
-                    vote_average = int(details_data.get('vote_average'))
-
-                    # Return all the details, ensuring empty fields are handled
-                    return {
-                        'poster_url': poster_url,
-                        'title': title,
-                        'spoken_languages': spoken_languages if spoken_languages else None,
-                        'genres': genres if genres else None,
-                        'collection_name': collection_name,
-                        'runtime': runtime,
-                        'release_date': release_date,
-                        'tagline': tagline,
-                        'vote_average': vote_average  # Keep float for precision
-                    }
+                    title = movie_data.get('title') or movie_data.get('name')
+                    release_date = movie_data.get('release_date')
+                    rating = int(movie_data.get('vote_average'))
+                    genres = ' '.join([f"#{genre['name'].replace(' ', '')}" for genre in movie_data.get('genres', [])])
+                    genres = genres.translate(translator)
+                    collection = movie_data.get('belongs_to_collection')
+                    collection_name = f"#{collection['name'].replace(' ', '')}" if collection else ""
+                    collection_name = collection_name.translate(translator)
+                    runtime = movie_data.get('runtime', None)  
+                    spoken_languages = ', '.join([lang['name'] for lang in movie_data.get('spoken_languages', [])])
+                    tagline = movie_data.get('tagline', None)  
+                                   
+                    return poster_url, title, release_date, rating, genres, collection_name, runtime, spoken_languages, tagline
 
     except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+      logger.error(f"Error fetching TMDB data: {e}")
+
+    return None, None, None, None, None, None, None, None, None
 
 async def extract_tg_link(telegram_link):
     try:
