@@ -182,7 +182,7 @@ async def get_movie_poster_by_id(media_type, movie_id):
             tmdb_movie_details_url = f'https://api.themoviedb.org/3/{media_type}/{movie_id}?api_key={TMDB_API_KEY}&language=en-US'
 
             async with session.get(tmdb_movie_details_url) as details_response:
-                details_data = await details_response.json()
+                movie_data = await details_response.json()
 
                 # Fetch additional image details (poster/backdrop)
                 tmdb_movie_image_url = f'https://api.themoviedb.org/3/{media_type}/{movie_id}/images?api_key={TMDB_API_KEY}&language=en-US&include_image_language=en,hi'
