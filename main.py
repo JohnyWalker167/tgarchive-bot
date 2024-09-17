@@ -1,6 +1,7 @@
 import uuid
 from utils import *
 from config import *
+from html import escape
 from time import time as tm
 from pyrogram import idle
 from pyromod import listen
@@ -95,7 +96,7 @@ async def handle_get_command(client, message):
                 caption = file_message.caption if file_message.caption else None
                 if caption:
                     new_caption = await remove_extension(caption.html)
-                    copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<b>{new_caption}</b>", parse_mode=enums.ParseMode.HTML)
+                    copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<b>{escape(new_caption)}</b>", parse_mode=enums.ParseMode.HTML)
                     user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
 
                 else:
@@ -117,7 +118,7 @@ async def handle_get_command(client, message):
         except FloodWait as f:
             await asyncio.sleep(f.value)
             if caption:
-                copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<b>{new_caption}</b>", parse_mode=enums.ParseMode.HTML)
+                copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<b>{escape(new_caption)}</b>", parse_mode=enums.ParseMode.HTML)
                 user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
 
             else:
@@ -148,11 +149,11 @@ async def forward_message_to_new_channel(client, message):
 
 
             try:
-                cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
+                cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{escape(new_caption)}</code>", parse_mode=enums.ParseMode.HTML)
                 await message.delete()
 
                 if poster_url:
-                    file_info = f"<b>🗂️ {cap_no_ext}\n\n💾 {humanbytes(file_size)}   🆔 <code>{cpy_msg.id}</code></b>"
+                    file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}   🆔 <code>{cpy_msg.id}</code></b>"
                     # Send the message with the TMDb poster
                     await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
                 else:
@@ -164,6 +165,9 @@ async def forward_message_to_new_channel(client, message):
                 # Fallback in case of any error
                 await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
                 await asyncio.sleep(3)
+
+    if message.photo:
+        message.copy(CAPTION_CHANNEL_ID)
 
 @app.on_message(filters.private & filters.command("send") & filters.user(OWNER_USERNAME))
 async def send_msg(client, message):
@@ -198,7 +202,7 @@ async def send_msg(client, message):
 
                         try:
                             if poster_url:
-                                file_info = f"<b>🗂️ {cap_no_ext}\n\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
+                                file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
                                 # Send the message with the TMDb poster
                                 await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
 
@@ -247,7 +251,7 @@ async def forward_message_to_new_channel(client, message):
 
                 try:
                     if poster_url:
-                        file_info = f"<b>🗂️ {cap_no_ext}\n\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
+                        file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
                         # Send the message with the TMDb poster
                         await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
                     else:
