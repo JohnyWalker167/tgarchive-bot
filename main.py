@@ -238,7 +238,6 @@ async def forward_message_to_new_channel(client, message):
             return link_msg.text
 
         msg_id = int(await extract_tg_link(await get_user_input("Send post link")))
-        type, id = await extract_tmdb_link(await get_user_input("Send tmdb link"))
 
         file_message = await app.get_messages(DB_CHANNEL_ID, msg_id)
         media = file_message.document or file_message.video
@@ -250,29 +249,28 @@ async def forward_message_to_new_channel(client, message):
             if caption:
                 new_caption = await remove_unwanted(caption)
                 cap_no_ext = await remove_extension(new_caption)
-                poster_url = await get_movie_poster_by_id(type, id)
 
                 try:
-                    if poster_url:
-                        file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
-                        # Send the message with the TMDb poster
-                        await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
-
-                except Exception as e:
-                    logger.error(f'{e}')
                     async def get_user_input(prompt):
                         rply = await message.reply_text(prompt)
                         photo_msg = await app.listen(message.chat.id, filters=filters.photo)
                         await photo_msg.delete()
                         await rply.delete()
                         return photo_msg
-                        
+        
+                    file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
+                    # Send the message with the TMDb poster
                     photo_msg = await get_user_input("Send photo")
                     photo_path = await app.download_media(photo_msg)
                     
                     # If no movie details, fallback to default poster and caption
                     await app.send_photo(CAPTION_CHANNEL_ID, photo_path, caption=file_info)
                     os.remove(photo_path)
+                except Exception as e:
+                    logger.error(f'{e}')
+                    if os.path.exists(photo_path):
+                        os.remove(photo_path)
+                                            
     except Exception as e:
         logger.error(f"{e}")
 
