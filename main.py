@@ -96,7 +96,7 @@ async def handle_get_command(client, message):
                 caption = file_message.caption if file_message.caption else None
                 if caption:
                     new_caption = await remove_extension(caption.html)
-                    copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<b>{escape(new_caption)}</b>", parse_mode=enums.ParseMode.HTML)
+                    copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<b>{new_caption}</b>", parse_mode=enums.ParseMode.HTML)
                     user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
 
                 else:
