@@ -414,7 +414,7 @@ async def update_token(user_id):
             token = str(uuid.uuid4())
         current_time = tm()
         user_data[user_id] = {"token": token, "time": current_time, "status": "unverified", "file_count": 0}
-        urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start={token}')
+        urlshortx = f'https://telegram.me/{bot_username}?start={token}'
         token_url = f'https://telegram.me/{bot_username}?start=token'
         button1 = InlineKeyboardButton("Collect Token", url=urlshortx)
         button2 = InlineKeyboardButton("How to Bypass Token", url=token_url)
@@ -428,7 +428,7 @@ async def genrate_token(user_id):
         token = str(uuid.uuid4())
         current_time = tm()
         user_data[user_id] = {"token": token, "time": current_time, "status": "unverified", "file_count": 0}
-        urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start={token}')
+        urlshortx = f'https://telegram.me/{bot_username}?start={token}'
         token_url = f'https://telegram.me/{bot_username}?start=token'
         button1 = InlineKeyboardButton("Collect Token", url=urlshortx)
         button2 = InlineKeyboardButton("How to Bypass Token", url=token_url)
