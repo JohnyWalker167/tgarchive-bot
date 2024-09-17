@@ -53,7 +53,7 @@ async def get_command(client, message):
 
      if len(message.command) > 1 and message.command[1] == "token":
         try:
-            file_id = 158
+            file_id = 4
             get_msg = await app.get_messages(DB_CHANNEL_ID, int(file_id))
             cpy_msg = await get_msg.copy(chat_id=message.chat.id)
             await auto_delete_message(message, cpy_msg)
