@@ -49,7 +49,7 @@ with app:
     bot_username = (app.get_me()).username
 
 @app.on_message(filters.private & filters.command("start"))
-async def get_command(client, message): 
+async def start_command(client, message): 
      user_id = message.from_user.id
      user_link = await get_user_link(message.from_user)
 
@@ -140,33 +140,33 @@ async def forward_message_to_new_channel(client, message):
     media = message.document or message.video
     
     if media:
-        caption = message.caption if message.caption else None
-        file_size = media.file_size if media.file_size else None
+        try:
+            caption = message.caption if message.caption else None
+            file_size = media.file_size if media.file_size else None
 
-        if caption:
-            new_caption = await remove_unwanted(caption)
-            cap_no_ext = await remove_extension(new_caption)
-            movie_name, release_year = await extract_movie_info(cap_no_ext)
-            poster_url = await get_movie_poster(movie_name, release_year)
-
-
-            try:
+            if caption:
+                new_caption = await remove_unwanted(caption)
+                cap_no_ext = await remove_extension(new_caption)
+                movie_name, release_year = await extract_movie_info(cap_no_ext)
+                poster_url = await get_movie_poster(movie_name, release_year)
+                
                 cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{escape(new_caption)}</code>", parse_mode=enums.ParseMode.HTML)
                 await message.delete()
-
+                
+                file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}   🆔 <code>{cpy_msg.id}</code></b>"
+                
                 if poster_url:
-                    file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}   🆔 <code>{cpy_msg.id}</code></b>"
                     # Send the message with the TMDb poster
                     await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
                 else:
                     # If no movie details, fallback to default poster and caption
                     await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info)
 
-            except Exception as e:
-                logger.error(f'{e}')
-                # Fallback in case of any error
-                await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info)
-                await asyncio.sleep(3)
+        except Exception as e:
+            logger.error(f'{e}')
+            # Fallback in case of any error
+            await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info)
+            await asyncio.sleep(3)
 
     if message.photo:
         await message.copy(CAPTION_CHANNEL_ID)
@@ -206,8 +206,8 @@ async def send_msg(client, message):
                         poster_url = await get_movie_poster(movie_name, release_year)
 
                         try:
+                            file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
                             if poster_url:
-                                file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
                                 # Send the message with the TMDb poster
                                 await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
 
