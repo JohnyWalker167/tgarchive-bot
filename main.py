@@ -48,7 +48,6 @@ with app:
 
 @app.on_message(filters.private & filters.command("start"))
 async def get_command(client, message): 
-     input_token = message.command[1] if len(message.command) > 1 else None
      user_id = message.from_user.id
      user_link = await get_user_link(message.from_user)
 
@@ -63,12 +62,13 @@ async def get_command(client, message):
             logger.error(f"{e}")
         return
 
-     if input_token:
-          token_msg = await verify_token(user_id, input_token)
-          reply = await message.reply_text(token_msg)
-          await app.send_message(LOG_CHANNEL_ID, f"User🕵️‍♂️{user_link} with 🆔 {user_id} @{bot_username} {token_msg}", parse_mode=enums.ParseMode.HTML)
-          await auto_delete_message(message, reply)
-          return
+     if len(message.command) > 1 and len(message.command[1]) == 36:
+         input_token = message.command[1] if len(message.command) > 1 else None
+         token_msg = await verify_token(user_id, input_token)
+         reply = await message.reply_text(token_msg)
+         await app.send_message(LOG_CHANNEL_ID, f"User🕵️‍♂️{user_link} with 🆔 {user_id} @{bot_username} {token_msg}", parse_mode=enums.ParseMode.HTML)
+         await auto_delete_message(message, reply)
+         return
      
      else:
         mongo_collection.update_one(
