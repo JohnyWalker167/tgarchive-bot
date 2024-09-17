@@ -255,16 +255,32 @@ async def forward_message_to_new_channel(client, message):
                         # Send the message with the TMDb poster
                         await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
                     else:
-                        # If no movie details, fallback to default poster and caption
-                        await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
+                        async def get_user_input(prompt):
+                            rply = await message.reply_text(prompt)
+                            photo_msg = await app.listen(message.chat.id, filters=filters.photo)
+                            await photo_msg.delete()
+                            await rply.delete()
+                            return photo_msg
+                        
+                        poster = await get_user_input("Send first post link")
 
-                    await asyncio.sleep(3)
+                        # If no movie details, fallback to default poster and caption
+                        await app.send_photo(CAPTION_CHANNEL_ID, poster, caption=file_info)
 
                 except Exception as e:
                     logger.error(f'{e}')
                     # Fallback in case of any error
-                    await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
-                    await asyncio.sleep(3)
+                    async def get_user_input(prompt):
+                        rply = await message.reply_text(prompt)
+                        photo_msg = await app.listen(message.chat.id, filters=filters.photo)
+                        await photo_msg.delete()
+                        await rply.delete()
+                        return photo_msg
+                    
+                    poster = await get_user_input("Send first post link")
+
+                    # If no movie details, fallback to default poster and caption
+                    await app.send_photo(CAPTION_CHANNEL_ID, poster, caption=file_info)
 
     except Exception as e:
         logger.error(f"{e}")
