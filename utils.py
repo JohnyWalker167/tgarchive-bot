@@ -1,17 +1,7 @@
 import re
-from sys import intern
-import requests
-import string
 import aiohttp
 import asyncio
 from config import *
-from pyrogram.types import User
-
-translator = str.maketrans('', '', string.punctuation.replace('#', ''))
-
-POSTER_BASE_URL = 'https://image.tmdb.org/t/p/original'
-
-MAX_OVERVIEW_LENGTH = 500  # Limit overview to 500 characters to prevent exceeding Telegram's limit.
 
 async def auto_delete_message(user_message, bot_message):
     try:
@@ -47,31 +37,6 @@ async def remove_extension(caption):
     except Exception as e:
         logger.error(e)
         return None
-    
-async def get_quality(caption):
-    try:
-        # Use regular expressions to check for resolution patterns in the caption
-        if re.search(r'720p', caption, re.IGNORECASE):
-            return '720p'
-        elif re.search(r'1080p', caption, re.IGNORECASE):
-            return '1080p'
-        elif re.search(r'2160p', caption, re.IGNORECASE):
-            return '2160p'
-        else:
-            return None  # Default if no resolution is found
-    except Exception as e:
-        logger.error(e)
-        return None
-    
-async def extract_season_episode(filename):
-    # Regex to find the season and episode pattern
-    match = re.search(r'S(\d{2})(?:E(\d{2}))?', filename, re.IGNORECASE)
-    if match:
-        season_no = f"S{match.group(1)}"
-        episode_no = f"E{match.group(2)}" if match.group(2) else None
-        
-        return season_no, episode_no
-    return None, None
 
 async def remove_unwanted(input_string):
     # Use regex to match .mkv or .mp4 and everything that follows
@@ -91,11 +56,6 @@ def humanbytes(size):
         i += 1
     f = ('%.2f' % size).rstrip('0').rstrip('.')
     return f"{f} {suffixes[i]}"
-
-async def get_user_link(user: User) -> str:
-    user_id = user.id
-    first_name = user.first_name
-    return f'<a href=tg://user?id={user_id}>{first_name}</a>'
 
 async def extract_movie_info(caption):
     try:
@@ -123,8 +83,7 @@ async def get_movie_poster(movie_name, release_year):
                     matching_results = [
                         result for result in search_data['results']
                         if ('release_date' in result and result['release_date'][:4] == str(release_year)) or
-                        ('first_air_date' in result and result['first_air_date'][:4] == str(
-                            release_year))
+                        ('first_air_date' in result and result['first_air_date'][:4] == str(release_year))
                     ]
 
                     if matching_results:
@@ -134,93 +93,53 @@ async def get_movie_poster(movie_name, release_year):
                         movie_id = result['id']
                         media_type = result['media_type']
 
-                        tmdb_movie_url = f'https://api.themoviedb.org/3/{media_type}/{movie_id}?api_key={TMDB_API_KEY}&language=en-US'
-
                         tmdb_movie_image_url = f'https://api.themoviedb.org/3/{media_type}/{movie_id}/images?api_key={TMDB_API_KEY}&language=en-US&include_image_language=en,hi'
 
                         async with session.get(tmdb_movie_image_url) as movie_response:
                             movie_images = await movie_response.json()
-
-                        async with session.get(tmdb_movie_url) as movie_response:
-                            movie_data = await movie_response.json()
+                            logger.info(f'{movie_images}')
  
                         # Use the backdrop_path or poster_path
                             poster_path = None
                             if 'backdrops' in movie_images and movie_images['backdrops']:
                                 poster_path = movie_images['backdrops'][0]['file_path']
-                                                        
-                            elif 'backdrop_path' in result and result['backdrop_path']:
-                                poster_path = result['backdrop_path']
-
-                            elif 'poster_path' in result and result['poster_path']:
-                                poster_path = result['poster_path']
+                                                         
+                            elif 'posters' in movie_images and movie_images['posters']:
+                                poster_path = movie_images['posters'][0]['file_path']
 
                             poster_url = f"https://image.tmdb.org/t/p/original{poster_path}"
-
-                            title = movie_data.get('title') or movie_data.get('name')
-                            release_date = movie_data.get('release_date')
-                            rating = int(movie_data.get('vote_average'))
-                            genres = ' '.join([f"#{genre['name'].replace(' ', '')}" for genre in movie_data.get('genres', [])])
-                            genres = genres.translate(translator)
-                            collection = movie_data.get('belongs_to_collection')
-                            collection_name = f"#{collection['name'].replace(' ', '')}" if collection else ""
-                            collection_name = collection_name.translate(translator)
-                            runtime = movie_data.get('runtime', None)  
-                            spoken_languages = ', '.join([lang['name'] for lang in movie_data.get('spoken_languages', [])])
-                            tagline = movie_data.get('tagline', None)  
                                    
-                            return poster_url, title, release_date, rating, genres, collection_name, runtime, spoken_languages, tagline
-    except Exception as e:
+                            return poster_url
+    except Exception as e:               
         logger.error(f"Error fetching TMDB data: {e}")
 
-    return None, None, None, None, None, None, None, None, None
+    return None
 
 async def get_movie_poster_by_id(media_type, movie_id):
     try:
         async with aiohttp.ClientSession() as session:
-            # Details URL for additional movie/TV show information
-            tmdb_movie_details_url = f'https://api.themoviedb.org/3/{media_type}/{movie_id}?api_key={TMDB_API_KEY}&language=en-US'
 
-            async with session.get(tmdb_movie_details_url) as details_response:
-                movie_data = await details_response.json()
+            tmdb_movie_image_url = f'https://api.themoviedb.org/3/{media_type}/{movie_id}/images?api_key={TMDB_API_KEY}&language=en-US&include_image_language=en,hi'
 
-                # Fetch additional image details (poster/backdrop)
-                tmdb_movie_image_url = f'https://api.themoviedb.org/3/{media_type}/{movie_id}/images?api_key={TMDB_API_KEY}&language=en-US&include_image_language=en,hi'
+            async with session.get(tmdb_movie_image_url) as movie_response:
+                movie_images = await movie_response.json()
+                logger.info(f'{movie_images}')
 
-                async with session.get(tmdb_movie_image_url) as movie_response:
-                    movie_images = await movie_response.json()
+            # Use the backdrop_path or poster_path
+                poster_path = None
+                if 'backdrops' in movie_images and movie_images['backdrops']:
+                    poster_path = movie_images['backdrops'][0]['file_path']
+                                                
+                elif 'posters' in movie_images and movie_images['posters']:
+                    poster_path = movie_images['posters'][0]['file_path']
+                                                
+                poster_url = f"https://image.tmdb.org/t/p/original{poster_path}"
+                        
+                return poster_url
+    except Exception as e:               
+        logger.error(f"Error fetching TMDB data: {e}")
 
-                    # Get the poster or backdrop path (check if list is not empty)
-                    poster_path = None
-                    if movie_images.get('backdrops'):
-                        poster_path = movie_images['backdrops'][0].get('file_path')
-                    elif details_data.get('backdrop_path'):
-                        poster_path = details_data['backdrop_path']
-                    elif details_data.get('poster_path'):
-                        poster_path = details_data['poster_path']
-
-                    # Ensure poster path is not None
-                    poster_url = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else None
-
-                    # Extract additional details with robust checks
-                    title = movie_data.get('title') or movie_data.get('name')
-                    release_date = movie_data.get('release_date')
-                    rating = int(movie_data.get('vote_average'))
-                    genres = ' '.join([f"#{genre['name'].replace(' ', '')}" for genre in movie_data.get('genres', [])])
-                    genres = genres.translate(translator)
-                    collection = movie_data.get('belongs_to_collection')
-                    collection_name = f"#{collection['name'].replace(' ', '')}" if collection else ""
-                    collection_name = collection_name.translate(translator)
-                    runtime = movie_data.get('runtime', None)  
-                    spoken_languages = ', '.join([lang['name'] for lang in movie_data.get('spoken_languages', [])])
-                    tagline = movie_data.get('tagline', None)  
-                                   
-                    return poster_url, title, release_date, rating, genres, collection_name, runtime, spoken_languages, tagline
-
-    except Exception as e:
-      logger.error(f"Error fetching TMDB data: {e}")
-
-    return None, None, None, None, None, None, None, None, None
+    return None
 
 async def extract_tg_link(telegram_link):
     try:
@@ -233,7 +152,7 @@ async def extract_tg_link(telegram_link):
             return None
     except Exception as e:
         logger.error(e)
-
+        
 async def extract_channel_id(telegram_link):
     try:
         pattern = re.compile(r'https://t\.me/c/(-?\d+)/(\d+)')
