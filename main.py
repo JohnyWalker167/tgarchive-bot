@@ -9,6 +9,7 @@ from pyrogram import Client, filters, enums
 from shorterner import *
 from asyncio import get_event_loop
 from pymongo import MongoClient
+from pyrogram.types import User
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 loop = get_event_loop()
