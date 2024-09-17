@@ -95,7 +95,7 @@ async def handle_get_command(client, message):
                 caption = file_message.caption if file_message.caption else None
                 if caption:
                     new_caption = await remove_extension(caption.html)
-                    copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
+                    copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<b>{new_caption}</b>", parse_mode=enums.ParseMode.HTML)
                     user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
 
                 else:
@@ -152,7 +152,7 @@ async def forward_message_to_new_channel(client, message):
                 await message.delete()
 
                 if poster_url:
-                    file_info = f"<b>🗂️ {cap_no_ext}\n💾 {humanbytes(file_size)}   🆔 <code>{cpy_msg.id}</code></b>"
+                    file_info = f"<b>🗂️ {cap_no_ext}\n\n💾 {humanbytes(file_size)}   🆔 <code>{cpy_msg.id}</code></b>"
                     # Send the message with the TMDb poster
                     await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
                 else:
@@ -198,7 +198,7 @@ async def send_msg(client, message):
 
                         try:
                             if poster_url:
-                                file_info = f"<b>🗂️ {cap_no_ext}\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
+                                file_info = f"<b>🗂️ {cap_no_ext}\n\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
                                 # Send the message with the TMDb poster
                                 await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
 
@@ -247,7 +247,7 @@ async def forward_message_to_new_channel(client, message):
 
                 try:
                     if poster_url:
-                        file_info = f"<b>🗂️ {cap_no_ext}\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
+                        file_info = f"<b>🗂️ {cap_no_ext}\n\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
                         # Send the message with the TMDb poster
                         await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
                     else:
