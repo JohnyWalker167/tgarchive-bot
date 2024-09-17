@@ -175,6 +175,7 @@ async def forward_message_to_new_channel(client, message):
 @app.on_message(filters.private & filters.command("send") & filters.user(OWNER_USERNAME))
 async def send_msg(client, message):
     try:
+        photo = 'photo.jpg'
         await message.delete()
         async def get_user_input(prompt):
             rply = await message.reply_text(prompt)
@@ -211,14 +212,14 @@ async def send_msg(client, message):
 
                             else:
                                 # If no movie details, fallback to default poster and caption
-                                await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
+                                await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info)
 
                             await asyncio.sleep(3)
 
                         except Exception as e:
                             logger.error(f'{e}')
                             # Fallback in case of any error
-                            await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
+                            await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info)
                             await asyncio.sleep(3)
 
         await message.reply_text("Messages send successfully ✅")
@@ -226,53 +227,6 @@ async def send_msg(client, message):
     except Exception as e:
         logger.error(f"Error in send commmand {e}")
 
-@app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
-async def forward_message_to_new_channel(client, message):
-    try:
-        await message.delete()
-        async def get_user_input(prompt):
-            rply = await message.reply_text(prompt)
-            link_msg = await app.listen(message.chat.id)
-            await link_msg.delete()
-            await rply.delete()
-            return link_msg.text
-
-        msg_id = int(await extract_tg_link(await get_user_input("Send post link")))
-
-        file_message = await app.get_messages(DB_CHANNEL_ID, msg_id)
-        media = file_message.document or file_message.video
-
-        if media:
-            caption = file_message.caption if file_message.caption else None
-            file_size = media.file_size if media.file_size else None
-
-            if caption:
-                new_caption = await remove_unwanted(caption)
-                cap_no_ext = await remove_extension(new_caption)
-
-                try:
-                    async def get_user_input(prompt):
-                        rply = await message.reply_text(prompt)
-                        photo_msg = await app.listen(message.chat.id, filters=filters.photo)
-                        await photo_msg.delete()
-                        await rply.delete()
-                        return photo_msg
-        
-                    file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
-                    # Send the message with the TMDb poster
-                    photo_msg = await get_user_input("Send photo")
-                    photo_path = await app.download_media(photo_msg)
-                    
-                    # If no movie details, fallback to default poster and caption
-                    await app.send_photo(CAPTION_CHANNEL_ID, photo_path, caption=file_info)
-                    os.remove(photo_path)
-                except Exception as e:
-                    logger.error(f'{e}')
-                    if os.path.exists(photo_path):
-                        os.remove(photo_path)
-                                            
-    except Exception as e:
-        logger.error(f"{e}")
 
 @app.on_message(filters.command("copy") & filters.user(OWNER_USERNAME))
 async def copy_msg(client, message):    
