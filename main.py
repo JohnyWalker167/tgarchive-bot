@@ -167,7 +167,9 @@ async def forward_message_to_new_channel(client, message):
                 await asyncio.sleep(3)
 
     if message.photo:
-        message.copy(CAPTION_CHANNEL_ID)
+        await message.copy(CAPTION_CHANNEL_ID)
+        await message.delete()
+        
 
 @app.on_message(filters.private & filters.command("send") & filters.user(OWNER_USERNAME))
 async def send_msg(client, message):
