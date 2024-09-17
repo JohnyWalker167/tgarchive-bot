@@ -257,26 +257,22 @@ async def forward_message_to_new_channel(client, message):
                         file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}   🆔 <code>{file_message.id}</code></b>"
                         # Send the message with the TMDb poster
                         await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
-                    else:
-                        async def get_user_input(prompt):
-                            rply = await message.reply_text(prompt)
-                            photo_msg = await app.listen(message.chat.id, filters=filters.photo)
-                            await photo_msg.delete()
-                            await rply.delete()
-                            return photo_msg
-                        
-                        photo_msg = await get_user_input("Send photo")
-                        photo_path = await app.download_media(photo_msg)
-                    
-                        # If no movie details, fallback to default poster and caption
-                        await app.send_photo(CAPTION_CHANNEL_ID, photo_path, caption=file_info)
-                        os.remove(photo_path)
 
                 except Exception as e:
                     logger.error(f'{e}')
-                    if os.path.exists(photo_path):
-                        os.remove(photo_path)
-
+                    async def get_user_input(prompt):
+                        rply = await message.reply_text(prompt)
+                        photo_msg = await app.listen(message.chat.id, filters=filters.photo)
+                        await photo_msg.delete()
+                        await rply.delete()
+                        return photo_msg
+                        
+                    photo_msg = await get_user_input("Send photo")
+                    photo_path = await app.download_media(photo_msg)
+                    
+                    # If no movie details, fallback to default poster and caption
+                    await app.send_photo(CAPTION_CHANNEL_ID, photo_path, caption=file_info)
+                    os.remove(photo_path)
     except Exception as e:
         logger.error(f"{e}")
 
