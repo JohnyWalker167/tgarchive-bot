@@ -134,8 +134,9 @@ async def handle_get_command(client, message):
         reply = await message.reply_text("Provide a File Id")
         await auto_delete_message(message, reply)  
 
-@app.on_message(filters.private & (filters.document | filters.video) & filters.user(OWNER_USERNAME))
+@app.on_message(filters.private & (filters.document | filters.video| filters.photo) & filters.user(OWNER_USERNAME))
 async def forward_message_to_new_channel(client, message):
+    photo = 'photo.jpg'
     media = message.document or message.video
     
     if media:
@@ -159,12 +160,12 @@ async def forward_message_to_new_channel(client, message):
                     await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
                 else:
                     # If no movie details, fallback to default poster and caption
-                    await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
+                    await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info)
 
             except Exception as e:
                 logger.error(f'{e}')
                 # Fallback in case of any error
-                await app.send_message(LOG_CHANNEL_ID, text=f"<code>{new_caption}</code>")
+                await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info)
                 await asyncio.sleep(3)
 
     if message.photo:
