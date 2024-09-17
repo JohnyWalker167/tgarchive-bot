@@ -122,7 +122,6 @@ async def get_movie_poster_by_id(media_type, movie_id):
 
             async with session.get(tmdb_movie_image_url) as movie_response:
                 movie_images = await movie_response.json()
-                logger.info(f'{movie_images}')
 
             # Use the backdrop_path or poster_path
                 poster_path = None
