@@ -264,25 +264,17 @@ async def forward_message_to_new_channel(client, message):
                             await rply.delete()
                             return photo_msg
                         
-                        poster = await get_user_input("Send first post link")
-
+                        photo_msg = await get_user_input("Send photo")
+                        photo_path = await app.download_media(photo_msg)
+                    
                         # If no movie details, fallback to default poster and caption
-                        await app.send_photo(CAPTION_CHANNEL_ID, poster, caption=file_info)
+                        await app.send_photo(CAPTION_CHANNEL_ID, photo_path, caption=file_info)
+                        os.remove(photo_path)
 
                 except Exception as e:
                     logger.error(f'{e}')
-                    # Fallback in case of any error
-                    async def get_user_input(prompt):
-                        rply = await message.reply_text(prompt)
-                        photo_msg = await app.listen(message.chat.id, filters=filters.photo)
-                        await photo_msg.delete()
-                        await rply.delete()
-                        return photo_msg
-                    
-                    poster = await get_user_input("Send first post link")
-
-                    # If no movie details, fallback to default poster and caption
-                    await app.send_photo(CAPTION_CHANNEL_ID, poster, caption=file_info)
+                    if os.path.exists(photo_path):
+                        os.remove(photo_path)
 
     except Exception as e:
         logger.error(f"{e}")
