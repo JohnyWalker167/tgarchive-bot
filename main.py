@@ -309,7 +309,7 @@ async def verify_token(user_id, input_token):
     if input_token == stored_token:
         token = str(uuid.uuid4())
         user_data[user_id] = {"token": token, "time": current_time, "status": "verified", "file_count": 0}
-        return f'Token Verified ✅'
+        return f'Token Verified ✅ (Validity: {get_readable_time(TOKEN_TIMEOUT)})'
     else:
         return f'Token Mismatched ❌'
     
@@ -329,11 +329,11 @@ async def check_access(message, user_id):
                 await auto_delete_message(message, reply)
         else:
             button = await update_token(user_id)
-            send_message = await app.send_message(user_id,f'<b>💎 Get Free Limited Access By Watching ADs\n(Validity: {get_readable_time(TOKEN_TIMEOUT)})</b>', reply_markup=button)
+            send_message = await app.send_message(user_id,f'<b>Get Free 💎 Limited Access \n</b>', reply_markup=button)
             await auto_delete_message(message, send_message)
     else:
         button = await genrate_token(user_id)
-        send_message = await app.send_message(user_id,f'<b>💎 Get Free Limited Access By Watching ADs\n(Valid: {get_readable_time(TOKEN_TIMEOUT)})</b>', reply_markup=button)
+        send_message = await app.send_message(user_id,f'<b>Get Free 💎 Limited Access</b>', reply_markup=button)
         await auto_delete_message(message, send_message)
 
 async def update_token(user_id):
@@ -350,7 +350,7 @@ async def update_token(user_id):
         token_url = f'https://telegram.me/{bot_username}?start=token'
         button1 = InlineKeyboardButton("💸 Watch Ads", url=urlshortx)
         button2 = InlineKeyboardButton("👨‍🏫 How to Watch Ads", url=token_url)
-        button = InlineKeyboardMarkup([[button1, button2]])
+        button = InlineKeyboardMarkup([[button1], [button2]]) 
         return button
     except Exception as e:
         logger.error(f"error in update_token: {e}")
@@ -362,9 +362,9 @@ async def genrate_token(user_id):
         user_data[user_id] = {"token": token, "time": current_time, "status": "unverified", "file_count": 0}
         urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start={token}')
         token_url = f'https://telegram.me/{bot_username}?start=token'
-        button1 = InlineKeyboardButton("💸 Watch Ads", url=urlshortx)
+        button1 = InlineKeyboardButton("💸 Watching Ads", url=urlshortx)
         button2 = InlineKeyboardButton("👨‍🏫 How to Watch Ads", url=token_url)
-        button = InlineKeyboardMarkup([[button1, button2]])
+        button = InlineKeyboardMarkup([[button1], [button2]]) 
         return button
     except Exception as e:
         logger.error(f"error in genrate_token: {e}")
