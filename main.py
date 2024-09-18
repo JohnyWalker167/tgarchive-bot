@@ -55,11 +55,12 @@ async def get_command(client, message):
 
     if len(message.command) > 1 and message.command[1] == "token":
         try:
-            file_id = 1365
+            file_id = 1366
             get_msg = await app.get_messages(DB_CHANNEL_ID, int(file_id))
             cpy_msg = await get_msg.copy(chat_id=message.chat.id)
-            await asyncio.sleep(240)
-            await auto_delete_message(message, cpy_msg)
+            await message.delete()
+            await asyncio.sleep(300)
+            await cpy_msg.delete()
             
         except Exception as e:
             logger.error(f"{e}")
@@ -84,8 +85,8 @@ async def get_command(client, message):
             if media:
                 caption = file_message.caption if file_message.caption else None
                 if caption:
-                    new_caption = await remove_extension(caption.html)
-                    copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
+                    new_caption = await remove_extension(caption)
+                    copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<b>{new_caption}</b>", parse_mode=enums.ParseMode.HTML)
                     user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
                 else:
                     copy_message = await file_message.copy(chat_id=message.chat.id)
@@ -103,7 +104,7 @@ async def get_command(client, message):
         except FloodWait as f:
             await asyncio.sleep(f.value)
             if caption:
-                copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<code>{new_caption}</code>", parse_mode=enums.ParseMode.HTML)
+                copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<b>{new_caption}</b>", parse_mode=enums.ParseMode.HTML)
                 user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
             else:
                 copy_message = await file_message.copy(chat_id=message.chat.id)
