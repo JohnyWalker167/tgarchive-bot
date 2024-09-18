@@ -329,11 +329,11 @@ async def check_access(message, user_id):
                 await auto_delete_message(message, reply)
         else:
             button = await update_token(user_id)
-            send_message = await app.send_message(user_id,f'<b>💎 Get Free Limited Access By Watching AD's\n(Validity: {get_readable_time(TOKEN_TIMEOUT)})</b>', reply_markup=button)
+            send_message = await app.send_message(user_id,f'<b>💎 Get Free Limited Access By Watching ADs\n(Validity: {get_readable_time(TOKEN_TIMEOUT)})</b>', reply_markup=button)
             await auto_delete_message(message, send_message)
     else:
         button = await genrate_token(user_id)
-        send_message = await app.send_message(user_id,f'<b>💎 Get Free Limited Access By Watching AD's\n(Valid: {get_readable_time(TOKEN_TIMEOUT)})</b>', reply_markup=button)
+        send_message = await app.send_message(user_id,f'<b>💎 Get Free Limited Access By Watching ADs\n(Valid: {get_readable_time(TOKEN_TIMEOUT)})</b>', reply_markup=button)
         await auto_delete_message(message, send_message)
 
 async def update_token(user_id):
