@@ -152,7 +152,7 @@ async def forward_message_to_new_channel(client, message):
                 cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{escape(new_caption)}</code>", parse_mode=enums.ParseMode.HTML)
                 await message.delete()
 
-                file_info = f"<b>🗂️ {escape(cap_no_ext)}\n💾 {humanbytes(file_size)}\n\n🆔 <code>{cpy_msg.id}</code></b>"
+                file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}  🆔 <code>{cpy_msg.id}</code></b>"
 
                 if poster_url:
                     # Send the message with the TMDb poster
@@ -205,7 +205,7 @@ async def send_msg(client, message):
                         poster_url = await get_movie_poster(movie_name, release_year)
 
                         try:
-                            file_info = f"<b>🗂️ {escape(cap_no_ext)}\n💾 {humanbytes(file_size)}\n\n🆔 <code>{file_message.id}</code></b>"
+                            file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}  🆔 <code>{file_message.id}</code></b>"
 
                             if poster_url:
                                 # Send the message with the TMDb poster
