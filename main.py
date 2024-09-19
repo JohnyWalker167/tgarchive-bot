@@ -205,7 +205,7 @@ async def send_msg(client, message):
                         poster_url = await get_movie_poster(movie_name, release_year)
 
                         try:
-                            file_info = f"<b>🗂️ {escape(cap_no_ext)}\n💾 {humanbytes(file_size)}\n\n🆔 <code>{cpy_msg.id}</code></b>"
+                            file_info = f"<b>🗂️ {escape(cap_no_ext)}\n💾 {humanbytes(file_size)}\n\n🆔 <code>{file_message.id}</code></b>"
 
                             if poster_url:
                                 # Send the message with the TMDb poster
