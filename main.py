@@ -80,18 +80,22 @@ async def start_command(client, message):
                 {'$set': {'user_id': user_id}}, 
                 upsert=True
             )
+        
+        if not await check_access(message, user_id):
+            return
+            
         reply = await message.reply_text(f"<b>💐Welcome this is TG⚡️Flix Bot")
         await auto_delete_message(message, reply)
 
 @app.on_message(filters.private & filters.command("get"))
 async def get_command(client, message):
     user_id = message.from_user.id
+    if not await check_access(message, user_id):
+        return
     
     file_id = message.command[1] if len(message.command) > 1 else None
 
     if file_id:
-        if not await check_access(message, user_id):
-            return
         try:
             file_message = await app.get_messages(DB_CHANNEL_ID, int(file_id))
             media = file_message.video or file_message.audio or file_message.document
