@@ -97,47 +97,25 @@ async def get_movie_poster(movie_name, release_year):
 
                         async with session.get(tmdb_movie_image_url) as movie_response:
                             movie_images = await movie_response.json()
- 
-                        # Use the backdrop_path or poster_path
-                            poster_path = None
-                            if 'backdrops' in movie_images and movie_images['backdrops']:
-                                poster_path = movie_images['backdrops'][0]['file_path']
-                                                         
-                            elif 'posters' in movie_images and movie_images['posters']:
-                                poster_path = movie_images['posters'][0]['file_path']
 
+                        # Initialize poster_path with the result's poster path
+                        poster_path = result.get('poster_path', None)
+
+                        # Use the backdrop_path or poster_path from the images API if available
+                        if 'backdrops' in movie_images and movie_images['backdrops']:
+                            poster_path = movie_images['backdrops'][0]['file_path']
+                        elif 'posters' in movie_images and movie_images['posters']:
+                            poster_path = movie_images['posters'][0]['file_path']
+
+                        # If poster_path is still None, return None or a default image URL
+                        if poster_path:
                             poster_url = f"https://image.tmdb.org/t/p/original{poster_path}"
-                                   
                             return poster_url
-    except Exception as e:               
-        logger.error(f"Error fetching TMDB data: {e}")
-
-    return None
-
-async def get_movie_poster_by_id(media_type, movie_id):
-    try:
-        async with aiohttp.ClientSession() as session:
-
-            tmdb_movie_image_url = f'https://api.themoviedb.org/3/{media_type}/{movie_id}/images?api_key={TMDB_API_KEY}&language=en-US&include_image_language=en,hi'
-
-            async with session.get(tmdb_movie_image_url) as movie_response:
-                movie_images = await movie_response.json()
-
-            # Use the backdrop_path or poster_path
-                poster_path = None
-                if 'backdrops' in movie_images and movie_images['backdrops']:
-                    poster_path = movie_images['backdrops'][0]['file_path']
-                                                
-                elif 'posters' in movie_images and movie_images['posters']:
-                    poster_path = movie_images['posters'][0]['file_path']
-                                                
-                poster_url = f"https://image.tmdb.org/t/p/original{poster_path}"
-                        
-                return poster_url
-    except Exception as e:               
-        logger.error(f"Error fetching TMDB data: {e}")
-
-    return None
+                        else:
+                            return None  # or some default image URL if you have one
+    except Exception as e:
+        print(f"Error fetching movie poster: {e}")
+        return None
 
 async def extract_tg_link(telegram_link):
     try:
