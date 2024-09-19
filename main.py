@@ -49,7 +49,7 @@ with app:
     bot_username = (app.get_me()).username
 
 @app.on_message(filters.private & filters.command("start"))
-async def get_command(client, message):
+async def start_command(client, message):
     user_id = message.from_user.id
     user_link = await get_user_link(message.from_user)
 
@@ -121,6 +121,54 @@ async def get_command(client, message):
         reply = await message.reply_text(f"<b>💐Welcome this is TG⚡️Flix Bot")
         await auto_delete_message(message, reply)
 
+@app.on_message(filters.private & filters.command("get"))
+async def get_command(client, message):
+    user_id = message.from_user.id
+    user_link = await get_user_link(message.from_user)
+    
+    file_id = message.command[1] if len(message.command) > 1 else None
+
+    if file_id:
+        if not await check_access(message, user_id):
+            return
+        try:
+            file_message = await app.get_messages(DB_CHANNEL_ID, int(file_id))
+            media = file_message.video or file_message.audio or file_message.document
+            if media:
+                caption = file_message.caption if file_message.caption else None
+                if caption:
+                    new_caption = await remove_extension(caption)
+                    copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<b>{new_caption}</b>", parse_mode=enums.ParseMode.HTML)
+                    user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
+                else:
+                    copy_message = await file_message.copy(chat_id=message.chat.id)
+                    user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
+                await auto_delete_message(message, copy_message)
+                await asyncio.sleep(3)
+            else:
+                reply = await message.reply_text("File not found or inaccessible.")
+                await auto_delete_message(message, reply)
+
+        except ValueError:
+            reply = await message.reply_text("Invalid File ID") 
+            await auto_delete_message(message, reply)  
+
+        except FloodWait as f:
+            await asyncio.sleep(f.value)
+            if caption:
+                copy_message = await file_message.copy(chat_id=message.chat.id, caption=f"<b>{new_caption}</b>", parse_mode=enums.ParseMode.HTML)
+                user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
+            else:
+                copy_message = await file_message.copy(chat_id=message.chat.id)
+                user_data[user_id]['file_count'] = user_data[user_id].get('file_count', 0) + 1
+
+            await auto_delete_message(message, copy_message)
+            await asyncio.sleep(3)
+        
+
+
+
+
 @app.on_message(filters.private & (filters.document | filters.video| filters.photo) & filters.user(OWNER_USERNAME))
 async def forward_message_to_new_channel(client, message):
     photo = 'photo.jpg'
@@ -140,13 +188,11 @@ async def forward_message_to_new_channel(client, message):
                 cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{escape(new_caption)}</code>", parse_mode=enums.ParseMode.HTML)
                 await message.delete()
 
-                file_link = f'https://telegram.me/{bot_username}?start={cpy_msg.id}'
-                file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}</b>"
-                button = InlineKeyboardMarkup([[InlineKeyboardButton("📥 Get File", url=file_link)]])
+                file_info = f"<b>🗂️ {escape(cap_no_ext)}💾 {humanbytes(file_size)}\n\n🆔<code>{cpy_msg.id}</code></b>"
 
                 if poster_url:
                     # Send the message with the TMDb poster
-                    await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info, reply_markup=button)
+                    await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
                 else:
                     # If no movie details, fallback to default poster and caption
                     await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info, reply_markup=button)
@@ -195,13 +241,11 @@ async def send_msg(client, message):
                         poster_url = await get_movie_poster(movie_name, release_year)
 
                         try:
-                            file_link = f'https://telegram.me/{bot_username}?start={file_message.id}'
-                            file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}</b>"
-                            button = InlineKeyboardMarkup([[InlineKeyboardButton("📥 Get File", url=file_link)]])
+                            file_info = f"<b>🗂️ {escape(cap_no_ext)}💾 {humanbytes(file_size)}\n\n🆔<code>{cpy_msg.id}</code></b>"
 
                             if poster_url:
                                 # Send the message with the TMDb poster
-                                await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info, reply_markup=button)
+                                await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
 
                             else:
                                 # If no movie details, fallback to default poster and caption
