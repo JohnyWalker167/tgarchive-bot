@@ -240,14 +240,17 @@ async def check_access(message, user_id):
             else:
                 reply = await message.reply_text(f"You have reached the limit. Please wait until the token expires")
                 await auto_delete_message(message, reply)
+                return False
         else:
             button = await update_token(user_id)
             send_message = await app.send_message(user_id, f"<b>It looks like your token has expired. Get Free 💎 Limited Access again!</b>", reply_markup=button)
             await auto_delete_message(message, send_message)
+            return False
     else:
         button = await genrate_token(user_id)
         send_message = await app.send_message(user_id, f"<b>It looks like you don't have a token. Get Free 💎 Limited Access now!</b>", reply_markup=button)
         await auto_delete_message(message, send_message)
+        return False
 
 async def update_token(user_id):
     try:
