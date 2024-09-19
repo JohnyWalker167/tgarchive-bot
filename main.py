@@ -254,8 +254,7 @@ async def copy_msg(client, message):
 
             for file_message in file_messages:
                 if file_message and (file_message.document or file_message.video or file_message.audio or file_message.photo):
-                    caption = file_message.caption.html if file_message.caption else None
-                    await file_message.copy(destination_id, caption=caption)
+                    await file_message.copy(destination_id)
                     await asyncio.sleep(3)
                     
         await message.reply_text("Messages copied successfully!✅")
