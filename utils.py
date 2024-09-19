@@ -57,65 +57,6 @@ def humanbytes(size):
     f = ('%.2f' % size).rstrip('0').rstrip('.')
     return f"{f} {suffixes[i]}"
 
-async def extract_movie_info(caption):
-    try:
-        regex = re.compile(r'(.+?)(\d{4})')
-        match = regex.search(caption)
-
-        if match:
-            # Replace '.' and remove '(' and ')' from movie_name
-            movie_name = match.group(1).replace('.', ' ').replace('(', '').replace(')', '').strip()
-            release_year = match.group(2)
-            return movie_name, release_year
-    except Exception as e:
-        print(e)
-    return None, None
-
-async def get_movie_poster(movie_name, release_year):
-    tmdb_search_url = f'https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={movie_name}'
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(tmdb_search_url) as search_response:
-                search_data = await search_response.json()
-
-                if search_data['results']:
-                    # Filter results based on release year and first air date
-                    matching_results = [
-                        result for result in search_data['results']
-                        if ('release_date' in result and result['release_date'][:4] == str(release_year)) or
-                        ('first_air_date' in result and result['first_air_date'][:4] == str(release_year))
-                    ]
-
-                    if matching_results:
-                        result = matching_results[0]
-
-                        # Fetch additional details using movie ID
-                        movie_id = result['id']
-                        media_type = result['media_type']
-
-                        tmdb_movie_image_url = f'https://api.themoviedb.org/3/{media_type}/{movie_id}/images?api_key={TMDB_API_KEY}&language=en-US&include_image_language=en,hi'
-
-                        async with session.get(tmdb_movie_image_url) as movie_response:
-                            movie_images = await movie_response.json()
-
-                        # Initialize poster_path with the result's poster path
-                        poster_path = result.get('poster_path', None)
-
-                        # Use the backdrop_path or poster_path from the images API if available
-                        if 'backdrops' in movie_images and movie_images['backdrops']:
-                            poster_path = movie_images['backdrops'][0]['file_path']
-                        elif 'posters' in movie_images and movie_images['posters']:
-                            poster_path = movie_images['posters'][0]['file_path']
-
-                        # If poster_path is still None, return None or a default image URL
-                        if poster_path:
-                            poster_url = f"https://image.tmdb.org/t/p/original{poster_path}"
-                            return poster_url
-                        else:
-                            return None  # or some default image URL if you have one
-    except Exception as e:
-        print(f"Error fetching movie poster: {e}")
-        return None
 
 async def extract_tg_link(telegram_link):
     try:
@@ -141,15 +82,3 @@ async def extract_channel_id(telegram_link):
             return None
     except Exception as e:
         logger.error(e)
-
-async def extract_tmdb_link(tmdb_url):
-    movie_pattern = r'themoviedb\.org\/movie\/(\d+)'
-    tv_pattern = r'themoviedb\.org\/tv\/(\d+)'
-    
-    if re.search(movie_pattern, tmdb_url):
-        tmdb_type = 'movie'
-        tmdb_id = re.search(movie_pattern, tmdb_url).group(1)
-    elif re.search(tv_pattern, tmdb_url):
-        tmdb_type = 'tv'
-        tmdb_id = re.search(tv_pattern, tmdb_url).group(1)
-    return tmdb_type, tmdb_id
