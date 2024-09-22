@@ -66,36 +66,19 @@ async def start_command(client, message):
             logger.error(f"{e}")
         return
 
-    if len(message.command) > 1 and len(message.command[1]) == 36:
-        input_token = message.command[1] if len(message.command) > 1 else None
+    if len(message.command) > 1 and message.command[1].startswith("token_"):
+        input_token = message.command[1][6:]
         token_msg = await verify_token(user_id, input_token)
         reply = await message.reply_text(token_msg)
         await app.send_message(LOG_CHANNEL_ID, f"User🕵️‍♂️{user_link} with 🆔 {user_id} @{bot_username} {token_msg}", parse_mode=enums.ParseMode.HTML)
         await auto_delete_message(message, reply)
         return
 
-    else:
-        mongo_collection.update_one(
-                {'user_id': user_id},
-                {'$set': {'user_id': user_id}}, 
-                upsert=True
-            )
-        
-        if not await check_access(message, user_id):
-            return
-            
-        reply = await message.reply_text(f"<b>💐Welcome this is TG⚡️Flix Bot")
-        await auto_delete_message(message, reply)
-
-@app.on_message(filters.private & filters.command("get"))
-async def get_command(client, message):
-    user_id = message.from_user.id
-    if not await check_access(message, user_id):
-        return
-    
     file_id = message.command[1] if len(message.command) > 1 else None
 
     if file_id:
+        if not await check_access(message, user_id):
+            return
         try:
             file_message = await app.get_messages(DB_CHANNEL_ID, int(file_id))
             media = file_message.video or file_message.audio or file_message.document
@@ -129,13 +112,15 @@ async def get_command(client, message):
 
             await auto_delete_message(message, copy_message)
             await asyncio.sleep(3)
-    else:
-        await message.reply_text("Provide a File 🆔")
     
-        
-
-
-
+    else:
+        mongo_collection.update_one(
+                {'user_id': user_id},
+                {'$set': {'user_id': user_id}}, 
+                upsert=True
+            )                   
+        reply = await message.reply_text(f"<b>💐Welcome this is TG⚡️Flix Bot")
+        await auto_delete_message(message, reply)
 
 @app.on_message(filters.private & (filters.document | filters.video| filters.photo) & filters.user(OWNER_USERNAME))
 async def forward_message_to_new_channel(client, message):
@@ -156,19 +141,22 @@ async def forward_message_to_new_channel(client, message):
                 cpy_msg = await message.copy(DB_CHANNEL_ID, caption=f"<code>{escape(new_caption)}</code>", parse_mode=enums.ParseMode.HTML)
                 await message.delete()
 
-                file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}  🆔 <code>{cpy_msg.id}</code></b>"
+                file_info = f"🗂️ <b>{escape(cap_no_ext)}</b>\n\n💾 <b>{humanbytes(file_size)}</b>"
+                file_link  = f"https://thetgflix.sshemw.workers.dev/bot1/{cpy_msg.id}"
+
+                keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("📥 Get File", url=file_link)]])
 
                 if poster_url:
                     # Send the message with the TMDb poster
-                    await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
+                    await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info, reply_markup=keyboard)
                 else:
                     # If no movie details, fallback to default poster and caption
-                    await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info)
+                    await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info, reply_markup=keyboard)
 
         except Exception as e:
             logger.error(f'{e}')
             # Fallback in case of any error
-            await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info)
+            await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info, reply_markup=keyboard)
             await asyncio.sleep(3)
 
     if message.photo:
@@ -184,7 +172,6 @@ async def send_msg(client, message):
         async def get_user_input(prompt):
             rply = await message.reply_text(prompt)
             link_msg = await app.listen(message.chat.id)
-            await link_msg.delete()
             await rply.delete()
             return link_msg.text
             
@@ -209,22 +196,25 @@ async def send_msg(client, message):
                         poster_url = await get_movie_poster(movie_name, release_year)
 
                         try:
-                            file_info = f"<b>🗂️ {escape(cap_no_ext)}\n\n💾 {humanbytes(file_size)}  🆔 <code>{file_message.id}</code></b>"
+                            file_info = f"🗂️ <b>{escape(cap_no_ext)}</b>\n\n💾 <b>{humanbytes(file_size)}</b>"
+                            file_link  = f"https://thetgflix.sshemw.workers.dev/bot1/{file_message.id}"
+
+                            keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("📥 Get File", url=file_link)]])
 
                             if poster_url:
                                 # Send the message with the TMDb poster
-                                await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info)
+                                await app.send_photo(CAPTION_CHANNEL_ID, poster_url, caption=file_info, reply_markup=keyboard)
 
                             else:
                                 # If no movie details, fallback to default poster and caption
-                                await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info)
+                                await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info, reply_markup=keyboard)
 
                             await asyncio.sleep(3)
 
                         except Exception as e:
                             logger.error(f'{e}')
                             # Fallback in case of any error
-                            await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info)
+                            await app.send_photo(CAPTION_CHANNEL_ID, photo, caption=file_info, reply_markup=keyboard)
                             await asyncio.sleep(3)
 
         await message.reply_text("Messages send successfully ✅")
@@ -240,7 +230,6 @@ async def copy_msg(client, message):
         async def get_user_input(prompt):
             rply = await message.reply_text(prompt)
             link_msg = await app.listen(message.chat.id)
-            await link_msg.delete()
             await rply.delete()
             return link_msg.text
         
