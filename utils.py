@@ -153,3 +153,55 @@ async def extract_tmdb_link(tmdb_url):
         tmdb_type = 'tv'
         tmdb_id = re.search(tv_pattern, tmdb_url).group(1)
     return tmdb_type, tmdb_id
+
+'''
+@app.on_message(filters.command("copy"))
+async def copy_msg(client, message):
+    # Pattern to extract ID from caption
+    ID_PATTERN = r"🆔 (\d+)"
+    try:
+        await message.delete()
+
+        async def get_user_input(prompt):
+            rply = await message.reply_text(prompt)
+            link_msg = await app.listen(message.chat.id)
+            await rply.delete()
+            return link_msg.text
+        
+        # Collect input from the user
+        start_msg_id = int(await extract_tg_link(await get_user_input("Send first post link")))
+        end_msg_id = int(await extract_tg_link(await get_user_input("Send end post link")))
+        db_channel_id = int(await extract_channel_id(await get_user_input("Send db_channel link")))
+        destination_id = int(await extract_channel_id(await get_user_input("Send destination channel link")))
+
+        batch_size = 199
+        for start in range(start_msg_id, end_msg_id + 1, batch_size):
+            end = min(start + batch_size - 1, end_msg_id)  # Ensure we don't go beyond end_msg_id
+            # Get and copy messages
+            file_messages = await app.get_messages(db_channel_id, range(start, end + 1))
+
+            for file_message in file_messages:
+                if file_message and file_message.photo:
+                    match = re.search(ID_PATTERN, file_message.caption)
+                    if match:
+                        file_id = match.group(1)
+                        file_link = f"https://thetgflix.sshemw.workers.dev/bot2/{file_id}"
+                        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("📥 Get File", url=file_link)]])
+
+                        # Check if caption is not None and modify it
+                        if file_message.caption:
+                            modified_caption = re.sub(r'🆔 \d+', '', file_message.caption).strip()
+                        else:
+                            modified_caption = ""  # Set a default caption if None
+
+                        # Send the message instead of copying
+                        await app.send_photo(destination_id, photo=file_message.photo.file_id, caption=f"<b>{modified_caption}</b>", reply_markup=keyboard)
+                        await asyncio.sleep(3)
+
+        await message.reply_text("Messages copied successfully!✅")
+
+    except FloodWait as e:
+        await asyncio.sleep(e.value)
+    except Exception as e:
+        logger.error(f'{e}')# Delete Commmand
+'''
