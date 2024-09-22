@@ -54,7 +54,7 @@ async def start_command(client, message):
 
     if len(message.command) > 1 and message.command[1] == "token":
         try:
-            file_id = 1405
+            file_id = 1563
             get_msg = await app.get_messages(DB_CHANNEL_ID, int(file_id))
             cpy_msg = await get_msg.copy(chat_id=message.chat.id)
             await message.delete()
@@ -351,7 +351,7 @@ async def update_token(user_id):
             token = str(uuid.uuid4())
         current_time = tm()
         user_data[user_id] = {"token": token, "time": current_time, "status": "unverified", "file_count": 0}
-        urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start={token}')
+        urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start=token_{token}')
         token_url = f'https://telegram.me/{bot_username}?start=token'
         button1 = InlineKeyboardButton("🎟️ Get Token", url=urlshortx)
         button2 = InlineKeyboardButton("👨‍🏫 How it Works", url=token_url)
@@ -365,7 +365,7 @@ async def genrate_token(user_id):
         token = str(uuid.uuid4())
         current_time = tm()
         user_data[user_id] = {"token": token, "time": current_time, "status": "unverified", "file_count": 0}
-        urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start={token}')
+        urlshortx = await shorten_url(f'https://telegram.me/{bot_username}?start=token_{token}')
         token_url = f'https://telegram.me/{bot_username}?start=token'
         button1 = InlineKeyboardButton("🎟️ Get Token", url=urlshortx)
         button2 = InlineKeyboardButton("👨‍🏫 How it Works", url=token_url)
