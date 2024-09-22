@@ -54,7 +54,7 @@ async def start_command(client, message):
 
     if len(message.command) > 1 and message.command[1] == "token":
         try:
-            file_id = 964
+            file_id = 1563
             get_msg = await app.get_messages(DB_CHANNEL_ID, int(file_id))
             cpy_msg = await get_msg.copy(chat_id=message.chat.id)
             await message.delete()
@@ -66,36 +66,19 @@ async def start_command(client, message):
             logger.error(f"{e}")
         return
 
-    if len(message.command) > 1 and len(message.command[1]) == 36:
-        input_token = message.command[1] if len(message.command) > 1 else None
+    if len(message.command) > 1 and message.command[1].startswith("token_"):
+        input_token = message.command[1][6:]
         token_msg = await verify_token(user_id, input_token)
         reply = await message.reply_text(token_msg)
         await app.send_message(LOG_CHANNEL_ID, f"User🕵️‍♂️{user_link} with 🆔 {user_id} @{bot_username} {token_msg}", parse_mode=enums.ParseMode.HTML)
         await auto_delete_message(message, reply)
         return
 
-    else:
-        mongo_collection.update_one(
-                {'user_id': user_id},
-                {'$set': {'user_id': user_id}}, 
-                upsert=True
-            )
-        
-        if not await check_access(message, user_id):
-            return
-            
-        reply = await message.reply_text(f"<b>💐Welcome this is TG⚡️Flix Bot")
-        await auto_delete_message(message, reply)
-
-@app.on_message(filters.private & filters.command("get"))
-async def get_command(client, message):
-    user_id = message.from_user.id
-    if not await check_access(message, user_id):
-        return
-    
     file_id = message.command[1] if len(message.command) > 1 else None
 
     if file_id:
+        if not await check_access(message, user_id):
+            return
         try:
             file_message = await app.get_messages(DB_CHANNEL_ID, int(file_id))
             media = file_message.video or file_message.audio or file_message.document
@@ -129,9 +112,15 @@ async def get_command(client, message):
 
             await auto_delete_message(message, copy_message)
             await asyncio.sleep(3)
-    else:
-        await message.reply_text("Provide a File 🆔")
     
+    else:
+        mongo_collection.update_one(
+                {'user_id': user_id},
+                {'$set': {'user_id': user_id}}, 
+                upsert=True
+            )                   
+        reply = await message.reply_text(f"<b>💐Welcome this is TG⚡️Flix Bot")
+        await auto_delete_message(message, reply)
     
 @app.on_message(filters.command("copy") & filters.user(OWNER_USERNAME))
 async def copy_msg(client, message):    
