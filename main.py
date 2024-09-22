@@ -164,13 +164,16 @@ async def delete_command(client, message):
         await message.reply_text("Enter channel_id")
         channel_id = int((await app.listen(message.chat.id)).text)
 
-        await message.reply_text("Enter count")
+        await message.reply_text("Enter msg count")
         limit = int((await app.listen(message.chat.id)).text)
+
+        await message.reply_text("Enter last msg id")
+        offset_id = int((await app.listen(message.chat.id)).text)
 
         await app.send_message(channel_id, "Hi")
 
         try:
-            async for message in user.get_chat_history(channel_id, limit):
+            async for message in user.get_chat_history(channel_id, limit=limit, offset_id=offset_id ):
                 await message.delete()
         except Exception as e:
             logger.error(f"Error deleting messages: {e}")
