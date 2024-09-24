@@ -1,6 +1,7 @@
 import uuid
 from utils import *
 from config import *
+from tmdb import get_by_url, get_by_name
 from html import escape
 from time import time as tm
 from pyrogram import idle
@@ -32,16 +33,9 @@ app = Client(
       parse_mode=enums.ParseMode.HTML
       )
 
-user = Client(
-                "userbot",
-                api_id=int(API_ID),
-                api_hash=API_HASH,
-                session_string=STRING_SESSION,
-                no_updates = True
-            )
 
 async def main():
-    async with app, user:
+    async with app:
         await idle()
 
 with app:
@@ -257,26 +251,50 @@ async def copy_msg(client, message):
     except Exception as e:
         logger.error(f'{e}')
 
-# Delete Commmand
-@app.on_message(filters.command("delete") & filters.user(OWNER_USERNAME))
-async def delete_command(client, message):
+@app.on_message(filters.private & filters.command("info") & filters.user(OWNER_USERNAME))
+async def getinfo_message(client, message):
+
+    await message.delete()
+    media_msg = await app.listen(message.chat.id, filters=(filters.video | filters.document))
+
+    caption = media_msg.caption if media_msg.caption else None
+    if caption:
+        new_caption = await remove_unwanted(caption)
     try:
-        await message.reply_text("Enter channel_id")
-        channel_id = int((await app.listen(message.chat.id)).text)
+        movie_name, release_year = await extract_movie_info(new_caption)
+        result = await get_by_name(movie_name, release_year)
+        poster_url = result['poster_url']
+        info = result['message']
+        if poster_url:
+            await app.send_photo(UPDATE_CHANNEL_ID, photo=poster_url, caption=info, parse_mode=enums.ParseMode.HTML)
+            await media_msg.delete()
+            await asyncio.sleep(3)
 
-        await message.reply_text("Enter count")
-        limit = int((await app.listen(message.chat.id)).text)
-
-        await app.send_message(channel_id, "Hi")
-
-        try:
-            async for message in user.get_chat_history(channel_id, limit):
-                await message.delete()
-        except Exception as e:
-            logger.error(f"Error deleting messages: {e}")
-        await user.send_message(channel_id, "done")
     except Exception as e:
-        logger.error(f"Error : {e}")
+        logger.error(f" info error {e}")
+
+@app.on_message(filters.private & filters.command("tmdb") & filters.user(OWNER_USERNAME))
+async def get_info(client, message):
+    try:
+        rply = await message.reply_text("Send TMDb link")
+
+        # Listen for the next message (the TMDb URL)
+        tmdb_msg = await app.listen(message.chat.id)
+
+        # Extract the URL from the listened message
+        tmdb_url = tmdb_msg.text
+
+        result = await get_by_url(tmdb_url)
+        poster_url = result['poster_url']
+        caption = result['message']
+        await app.send_photo(UPDATE_CHANNEL_ID, photo=poster_url, caption=caption, parse_mode=enums.ParseMode.HTML)
+        await asyncio.sleep(3)
+        await auto_delete_message(message, rply)
+        await tmdb_msg.delete()
+        await asyncio.sleep(3)
+    except Exception as e:
+        logger.error(f"{e}")
+
 
 # Get Log Command
 @app.on_message(filters.command("log") & filters.user(OWNER_USERNAME))
