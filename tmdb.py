@@ -133,7 +133,7 @@ async def format_tmdb_info(tmdb_type, movie_id, data):
         director = cast_crew.get('director', 'N/A')
         
         message = (
-            f"<b>{title} ({release_year})  is now available.</b>\n\n"
+            f"<b>{title} ({release_year})</b>  is now available.\n\n"
             f"<b>Summary:</b> {summary}\n\n"
             f"<b>Starring:</b> {starring}\n\n"
             f"<b>Director:</b> {director}\n\n"
@@ -147,7 +147,7 @@ async def format_tmdb_info(tmdb_type, movie_id, data):
         starring = ", ".join(cast_crew.get('starring', []))
         
         message = (
-            f"<b>{title} ({release_year})  is now available.</b>\n\n"
+            f"<b>{title} ({release_year})</b>  is now available.\n\n"
             f"<b>Summary:</b> {summary}\n\n"
             f"<b>Starring:</b> {starring}\n\n"
             f"{genres}"
@@ -158,7 +158,7 @@ async def format_tmdb_info(tmdb_type, movie_id, data):
         summary = truncate_overview(data.get('overview', 'N/A'))
         
         message = (
-            f"<b>{title} (Collection)  is now available.</b>\n\n"
+            f"<b>{title} (Collection)</b>  is now available.\n\n"
             f"<b>Summary:</b> {summary}\n\n"
             f"{genres}"
         )
