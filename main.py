@@ -32,16 +32,8 @@ app = Client(
       parse_mode=enums.ParseMode.HTML
       )
 
-user = Client(
-                "userbot",
-                api_id=int(API_ID),
-                api_hash=API_HASH,
-                session_string=STRING_SESSION,
-                no_updates = True
-            )
-
 async def main():
-    async with app, user:
+    async with app:
         await idle()
 
 with app:
@@ -183,27 +175,6 @@ async def handle_get_command(client, message):
         reply = await message.reply_text("Provide a File Id")
         await auto_delete_message(message, reply)  
        
-# Delete Commmand
-@app.on_message(filters.command("delete") & filters.user(OWNER_USERNAME))
-async def delete_command(client, message):
-    try:
-        await message.reply_text("Enter channel_id")
-        channel_id = int((await app.listen(message.chat.id)).text)
-
-        await message.reply_text("Enter count")
-        limit = int((await app.listen(message.chat.id)).text)
-
-        await app.send_message(channel_id, "Hi")
-
-        try:
-            async for message in user.get_chat_history(channel_id, limit):
-                await message.delete()
-        except Exception as e:
-            logger.error(f"Error deleting messages: {e}")
-        await user.send_message(channel_id, "done")
-    except Exception as e:
-        logger.error(f"Error : {e}")
-
 # Get Log Command
 @app.on_message(filters.command("log") & filters.user(OWNER_USERNAME))
 async def log_command(client, message):
