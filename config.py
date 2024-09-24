@@ -47,7 +47,6 @@ API_HASH = os.getenv('API_HASH')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 OWNER_USERNAME = os.getenv('OWNER_USERNAME')
 OWNER_ID = int(os.getenv('OWNER_ID'))
-STRING_SESSION = os.getenv('STRING_SESSION')
 
 
 MONGO_URL = os.getenv('MONGO_URL')
@@ -58,6 +57,7 @@ TMDB_API_KEY = os.getenv('TMDB_API_KEY')
 DB_CHANNEL_ID = int(os.getenv('DB_CHANNEL_ID'))
 LOG_CHANNEL_ID = int(os.getenv('LOG_CHANNEL_ID'))
 CAPTION_CHANNEL_ID = int(os.getenv('CAPTION_CHANNEL_ID'))
+UPDATE_CHANNEL_ID = int(os.getenv('UPDATE_CHANNEL_ID'))
 
 URLSHORTX_API_TOKEN = os.getenv('URLSHORTX_API_TOKEN')
 SHORTERNER_URL = os.getenv('SHORTERNER_URL')
